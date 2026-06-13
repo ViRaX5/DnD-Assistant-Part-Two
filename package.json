@@ -1,0 +1,27 @@
+{
+  "name": "finalprojectparttwo",
+  "version": "1.0.0",
+  "description": "The backend for the final project",
+  "homepage": "https://github.com/ViRaX5/DnD-Assistant-Part-Two#readme",
+  "bugs": {
+    "url": "https://github.com/ViRaX5/DnD-Assistant-Part-Two/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ViRaX5/DnD-Assistant-Part-Two.git"
+  },
+  "license": "ISC",
+  "author": "Amit Lachmann and Noam Eilat",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
