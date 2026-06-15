@@ -1,13 +1,19 @@
+require('dotenv').config()
 const express = require('express')
 const app = express()
 
+const port = process.env.PORT || 8080
+
+app.use(express.json())
+app.use(express.urlencoded({ extended: true }))
+
 app.get("/", (req, res) => {
-    res.send("This is local host 3000")
+    res.send(`This is localhost:${port}`)
 })
 
 
-app.listen(3000, () => {
-    console.log("server is running on localhost:3000")
+app.listen(port, () => {
+    console.log(`server is running on localhost:${port}`)
 })
 
 
