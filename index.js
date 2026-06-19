@@ -21,21 +21,20 @@ app.post('/api/signup', (req, res) => {
     const { firstname, lastname, email, password, repeatPassword } = req.body
 
     const errors = loginSignupModule.validateSignUp(firstname, lastname, email, password, repeatPassword)
-    
-    if (errors.length > 0)
-    {
-        return res.status(400).json({success: false, errors})
+
+    if (errors.length > 0) {
+        return res.status(400).json({ success: false, errors })
     }
 
     // data is valid TODO add to database
 
-    res.json({ success: true, redirect: './campaignList.html'})
+    res.json({ success: true, redirect: './campaignList.html' })
     // look into json web tokens to keep track of which account it is that is logged in
 })
 
 app.post('/api/login', (req, res) => {
     const { email, password } = req.body;
-    
+
     const errors = loginSignupModule.validateLogin(email, password);
 
     if (errors.length > 0) {
@@ -50,9 +49,19 @@ app.get("/", (req, res) => {
     res.send(`This is localhost:${port}`)
 })
 
-
-app.listen(port, () => {
+const server = app.listen(port, () => {
     console.log(`server is running on localhost:${port}`)
+})
+
+const io = require('socket.io')(server, {
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
+    }
+});
+
+io.on('connection', (socket) => {
+    console.log('Backend Connection', socket.id);
 })
 
 
