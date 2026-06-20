@@ -53,7 +53,7 @@ app.use((req, res, next) => {
 // get/post/etc.
 
 app.post('/api/signup', (req, res) => {
-    loginSignupModule.signUp(req,res, pool)
+    loginSignupModule.signUp(req, res, pool)
     // const { firstname, lastname, email, password, repeatPassword } = req.body
 
     // const errors = loginSignupModule.validateSignUp(firstname, lastname, email, password, repeatPassword)
@@ -99,6 +99,11 @@ const io = require('socket.io')(server, {
 
 io.on('connection', (socket) => {
     console.log('Backend Connection', socket.id);
+
+    socket.on('map:moveToken', (data) => {
+        // Broadcast sends the data to EVERYONE connected EXCEPT the person who just moved the token
+        socket.broadcast.emit('map:updateToken', data);
+    });
 })
 
 
