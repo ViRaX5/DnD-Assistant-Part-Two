@@ -38,7 +38,7 @@ connection.getConnection((err, conn) => {
 
 // cors
 
-const allowedOrigin = process.env.NODE_ENV === 'production' ? 'https://virax5.github.io' : '*' 
+const allowedOrigin = process.env.NODE_ENV === 'production' ? 'https://virax5.github.io' : '*'
 
 app.use((req, res, next) => {
     res.set({
@@ -53,7 +53,7 @@ app.use((req, res, next) => {
 // get/post/etc.
 
 app.post('/api/signup', (req, res) => {
-    loginSignupModule.signUp(req,res, connection)
+    loginSignupModule.signUp(req, res, connection)
     // const { firstname, lastname, email, password, repeatPassword } = req.body
 
     // const errors = loginSignupModule.validateSignUp(firstname, lastname, email, password, repeatPassword)
