@@ -79,6 +79,11 @@ const io = require('socket.io')(server, {
 
 io.on('connection', (socket) => {
     console.log('Backend Connection', socket.id);
+
+    socket.on('map:moveToken', (data) => {
+        // Broadcast sends the data to EVERYONE connected EXCEPT the person who just moved the token
+        socket.broadcast.emit('map:updateToken', data);
+    });
 })
 
 
