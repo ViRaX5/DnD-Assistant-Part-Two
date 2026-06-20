@@ -1,37 +1,26 @@
 // const tempDB = { "firstname": "Amit", "lastname": "Lachmann", "email": "amit505r@gmail.com", "password": "HelloWorld" };
 const argon2 = require('argon2');
-const mysql = require('mysql2');
+// const mysql = require('mysql2');
+// const fs = require('fs')
 
-const connection = mysql.createConnection({
-    host: 'localhost',
-    user: 'root',
-    password: '', //very imortant!!!!! this is your password, when you load into mySQL workbench and click the button in the image on whatsapp you
-    //              a password, this is the same password!!. in order to keep it working well until I connect it to the clound, before you push
-    //              make sure to delete this password as to not share your password online.
-    database: 'DnDAssistant' //also very important. this DB needs to be created in your local DB for this to work.
-    //                         While you are at it also add the table listed below
-    /*
-        CREATE TABLE users_info (
-        first_name VARCHAR(40),
-        last_name VARCHAR(40),
-        email VARCHAR(254) NOT NULL,
-        hashed_password VARCHAR(255) NOT NULL,
-        PRIMARY KEY (email)
-        )
-        ;
-    */
-})
+// const connection = mysql.createConnection({
+//     host: process.env.DB_HOST,
+//     user: process.env.DB_USER,
+//     password: process.env.DB_PASSWORD,
+//     database: process.env.DB_NAME,
+//     ssl: {
+//         ca: fs.readFileSync(__dirname + '/global-bundle.pem')
+//     }
+// })
 
-connection.connect((err) => {
-    if (err)
-    {
-        console.log(err)
-    }
-    else
-    {
-        console.log("connected to db")
-    }
-})
+// connection.connect((err) => {
+//     if (err) {
+//         console.error("Cloud Database connection failed: ", err)
+//     }
+//     else {
+//         console.log("Successfully connected to AWS RDS!")
+//     }
+// })
 
 function validateSignUp(firstname, lastname, email, password, repeatPassword) {
     let errors = [];
@@ -58,37 +47,42 @@ function validateLogin(email, password) {
     let errors = []
 
     if (!email) errors.push({ field: 'emailLogin', msg: 'Email is required' });
-    if (email !== tempDB.email && email !== '') {
-        errors.push({ field: 'emailLogin', msg: 'Wrong email' });
-    }
+    // if (email !== tempDB.email && email !== '') {
+    //     errors.push({ field: 'emailLogin', msg: 'Wrong email' });
+    // }
 
     if (!password) {
         errors.push({ field: 'passwordLogin', msg: 'Password is required' });
-    } else if (password !== tempDB.password && password !== '') {
-        errors.push({ field: 'passwordLogin', msg: 'Wrong password' });
     }
+    // else if (password !== tempDB.password && password !== '') {
+    //     errors.push({ field: 'passwordLogin', msg: 'Wrong password' });
+    // }
 
     return errors;
 }
 
-async function signUp(req, res) {
+async function signUp(req, res, connection) {
     const { firstname, lastname, email, password, repeatPassword } = req.body
 
     const errors = validateSignUp(firstname, lastname, email, password, repeatPassword)
 
-    if (email){
-        try {
-            const [results] = await connection.promise().query(
-                'SELECT email FROM users_info WHERE email = ?', [email]
-            )
-            if (results.length > 0) {
-                error.push({ field: "email", msg: 'This email already has an account'})
-            }
+    try {
+        const [results] = await connection.promise().query(
+            'SELECT email FROM users_info WHERE email = ?', [email]
+        )
+        if (results.length > 0) {
+            errors.push({ field: "email", msg: 'This email already has an account' })
         }
-        catch (dbErr) {
-            console.error("Database error during email check: ", dbErr)
-            return res.status(500).json({ success: false, error: dbErr})
-        }
+    }
+    catch (dbErr) {
+        console.error("Database error during email check: ", dbErr)
+
+        const clientMessage = process.env.NODE_ENV === 'development'
+            ? dbErr.message
+            : "An internal server error occurred."
+
+        return res.status(500).json({ success: false, error: clientMessage })
+
     }
 
     if (errors.length > 0) {
@@ -106,7 +100,12 @@ async function signUp(req, res) {
         connection.query('insert into users_info values (?,?,?,?)', [firstname, lastname, email, hashedPassord], (err) => {
             if (err) {
                 console.error("Database error: ", err)
-                return res.status(500).json({ success: false }, err)
+
+                const clientMessage = process.env.NODE_ENV === 'development'
+                    ? err.message
+                    : "An internal server error occurred."
+
+                return res.status(500).json({ success: false }, clientMessage)
             }
             res.json({ success: true, redirect: './campaignList.html' })
         })
@@ -114,12 +113,62 @@ async function signUp(req, res) {
     }
     catch (err) {
         console.error("Hashing error: ", err)
-        return res.status(500).json({ success: false, err })
+
+        const clientMessage = process.env.NODE_ENV === 'development'
+            ? err.message
+            : "An internal server error occurred."
+
+        return res.status(500).json({ success: false, clientMessage })
     }
+}
+
+async function logIn(req, res, connection) {
+    const { email, password } = req.body
+
+    const errors = validateLogin(email, password)
+
+    if (errors.length > 0) {
+        return res.status(400).json({ success: false, errors })
+    }
+
+    if (email) {
+        try {
+            const [results] = await connection.promise().query(
+                'SELECT email, hashed_password FROM users_info WHERE email = ?', [email]
+            )
+            if (results.length === 0) {
+                error.push({ field: "email", msg: 'Invalid email or password' })
+                return res.status(400).json({ success: false, errors })
+            }
+            const user = results[0]
+            
+            const isMatch = await argon2.verify(user.hashed_password, password)
+
+            if (!isMatch) {
+                errors.push({ field: "email", msg: 'This email does not have an account' })
+                return res.status(400).json({ success: false, errors })
+            }
+
+            return res.json({ success: true, redirect: './campaignList.html'})
+        }
+        catch (err) {
+            console.error("Login processing error: ", err)
+
+            const clientMessage = process.env.NODE_ENV === 'development'
+                ? dbErr.message
+                : "An internal server error occurred."
+
+            return res.status(500).json({ success: false, error: clientMessage })
+        }
+    }
+    // if (errors.length > 0) {
+    //     return res.status(400).json({ success: false, errors})
+    // }
 }
 
 module.exports = {
     signUp,
+    logIn,
     validateSignUp,
     validateLogin
 }
