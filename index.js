@@ -2,6 +2,8 @@ require('dotenv').config()
 const express = require('express')
 const app = express()
 const loginSignupModule = require('./Modules/loginModule')
+const argon2 = require('argon2')
+const mysql = require('mysql2')
 
 const port = process.env.PORT || 8080
 
@@ -18,18 +20,19 @@ app.use((req, res, next) => {
 })
 
 app.post('/api/signup', (req, res) => {
-    const { firstname, lastname, email, password, repeatPassword } = req.body
+    loginSignupModule.signUp(req,res)
+    // const { firstname, lastname, email, password, repeatPassword } = req.body
 
-    const errors = loginSignupModule.validateSignUp(firstname, lastname, email, password, repeatPassword)
+    // const errors = loginSignupModule.validateSignUp(firstname, lastname, email, password, repeatPassword)
 
-    if (errors.length > 0) {
-        return res.status(400).json({ success: false, errors })
-    }
+    // if (errors.length > 0) {
+    //     return res.status(400).json({ success: false, errors })
+    // }
 
-    // data is valid TODO add to database
+    // // data is valid TODO add to database
 
-    res.json({ success: true, redirect: './campaignList.html' })
-    // look into json web tokens to keep track of which account it is that is logged in
+    // res.json({ success: true, redirect: './campaignList.html' })
+    // // look into json web tokens to keep track of which account it is that is logged in
 })
 
 app.post('/api/login', (req, res) => {
