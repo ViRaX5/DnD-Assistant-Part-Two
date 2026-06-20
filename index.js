@@ -38,7 +38,7 @@ pool.getConnection((err, conn) => {
 
 // cors
 
-const allowedOrigin = process.env.NODE_ENV === 'production' ? 'https://virax5.github.io' : '*' 
+const allowedOrigin = process.env.NODE_ENV === 'production' ? 'https://virax5.github.io' : '*'
 
 app.use((req, res, next) => {
     res.set({
@@ -55,6 +55,9 @@ app.use((req, res, next) => {
 app.post('/api/signup', (req, res) => {
 <<<<<<< HEAD
     loginSignupModule.signUp(req,res, pool)
+=======
+    loginSignupModule.signUp(req, res, connection)
+>>>>>>> 0d07f1222771f49bdff118fab25347f225847294
     // const { firstname, lastname, email, password, repeatPassword } = req.body
 
     // const errors = loginSignupModule.validateSignUp(firstname, lastname, email, password, repeatPassword)
