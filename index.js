@@ -13,7 +13,7 @@ app.use(express.urlencoded({ extended: true }))
 
 // database connection
 
-const connection = mysql.createPool({
+const pool = mysql.createPool({
     host: process.env.DB_HOST,
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
@@ -26,7 +26,7 @@ const connection = mysql.createPool({
     }
 })
 
-connection.getConnection((err, conn) => {
+pool.getConnection((err, conn) => {
     if (err) {
         console.error("Cloud Database connection failed: ", err)
     }
@@ -53,7 +53,7 @@ app.use((req, res, next) => {
 // get/post/etc.
 
 app.post('/api/signup', (req, res) => {
-    loginSignupModule.signUp(req,res, connection)
+    loginSignupModule.signUp(req,res, pool)
     // const { firstname, lastname, email, password, repeatPassword } = req.body
 
     // const errors = loginSignupModule.validateSignUp(firstname, lastname, email, password, repeatPassword)
@@ -69,16 +69,17 @@ app.post('/api/signup', (req, res) => {
 })
 
 app.post('/api/login', (req, res) => {
-    const { email, password } = req.body;
+    loginSignupModule.logIn(req, res, pool)
+    // const { email, password } = req.body;
 
-    const errors = loginSignupModule.validateLogin(email, password);
+    // const errors = loginSignupModule.validateLogin(email, password);
 
-    if (errors.length > 0) {
-        return res.status(400).json({ success: false, errors });
-    }
+    // if (errors.length > 0) {
+    //     return res.status(400).json({ success: false, errors });
+    // }
 
-    res.json({ success: true, redirect: './campaignList.html' });
-    // look into json web tokens to keep track of which account it is that is logged in
+    // res.json({ success: true, redirect: './campaignList.html' });
+    // // look into json web tokens to keep track of which account it is that is logged in
 })
 
 app.get("/", (req, res) => {
