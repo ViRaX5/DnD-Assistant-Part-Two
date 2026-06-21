@@ -69,7 +69,7 @@ async function signUp(req, res, connection) {
     try {
         const hashedPassord = await argon2.hash(password);
 
-        await connection.promise().query('insert into users_info values (?,?,?,?)', [firstname, lastname, email, hashedPassord])
+        await connection.promise().query('insert into users_info (first_name, last_name, email, hashed_password) values (?,?,?,?)', [firstname, lastname, email, hashedPassord])
 
         return res.json({ success: true, redirect: './campaignList.html' })
         // look into json web tokens to keep track of which account it is that is logged in

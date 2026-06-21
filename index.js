@@ -1,10 +1,11 @@
-require('dotenv').config()
-const express = require('express')
-const app = express()
-const loginSignupModule = require('./Modules/loginModule')
-// const argon2 = require('argon2') probably dont need here
-const mysql = require('mysql2')
-const fs = require('fs')
+require('dotenv').config();
+const express = require('express');
+const app = express();
+const loginSignupModule = require('./Modules/loginModule');
+const campaignListModule = require('./Modules/campaignListModule');
+// const argon2 = require('argon2'); probably dont need here
+const mysql = require('mysql2');
+const fs = require('fs');
 
 const port = process.env.PORT || 8080
 
@@ -60,6 +61,10 @@ app.post('/api/signup', (req, res) => {
 app.post('/api/login', (req, res) => {
     loginSignupModule.logIn(req, res, pool)
     // look into json web tokens to keep track of which account it is that is logged in
+})
+
+app.get('/api/campaignList', (req, res) => {
+    campaignListModule.getCampaignsList(req, res, pool)
 })
 
 app.get("/", (req, res) => {
