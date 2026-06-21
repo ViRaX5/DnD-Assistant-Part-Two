@@ -6,6 +6,7 @@ const campaignListModule = require('./Modules/campaignListModule');
 // const argon2 = require('argon2'); probably dont need here
 const mysql = require('mysql2');
 const fs = require('fs');
+const helper = require('./Modules/helperFunctionsModule')
 
 const port = process.env.PORT || 8080
 
@@ -65,6 +66,22 @@ app.post('/api/login', (req, res) => {
 
 app.get('/api/campaignList', (req, res) => {
     campaignListModule.getCampaignsList(req, res, pool)
+})
+
+app.get('/api/generateCode', (req, res) => {
+    helper.getUniqueJoinCode(req, res, pool)
+    // try {
+    //     const safeCode = await helper.getUniqueJoinCode(pool)
+    //     return res.json({success: true, join_code: safeCode})
+    // }
+    // catch (err) {
+    //     console.error("Code generation failed:", err)
+    //     return res.status(500).json({ success: false, error: "Server error" })
+    // }
+})
+
+app.post('/api/createNewCampaign', (req, res) => {
+    campaignListModule.createNewCampaign(req, res, pool)
 })
 
 app.get("/", (req, res) => {

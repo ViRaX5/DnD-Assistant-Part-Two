@@ -122,8 +122,9 @@ async function logIn(req, res, connection) {
 
         return res.status(500).json({ success: false, error: clientMessage })
     }
-
 }
+
+
 
 module.exports = {
     signUp,
