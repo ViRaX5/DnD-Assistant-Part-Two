@@ -6,7 +6,11 @@ const campaignListModule = require('./Modules/campaignListModule');
 // const argon2 = require('argon2'); probably dont need here
 const mysql = require('mysql2');
 const fs = require('fs');
-const helper = require('./Modules/helperFunctionsModule')
+const helper = require('./Modules/helperFunctionsModule');
+const mongoose = require('mongoose');
+const uri = `mongodb+srv://amit505r_db_user:${process.env.MONGODB_PASSWORD}@cluster0.6a6vfcx.mongodb.net/?appName=Cluster0`;
+// const { MongoClient, ServerApiVersion } = require('mongodb');
+// const uri = `mongodb+srv://amit505r_db_user:${process.env.MONGODB_PASSWORD}@cluster0.6a6vfcx.mongodb.net/?appName=Cluster0`;
 
 const port = process.env.PORT || 8080
 
@@ -14,6 +18,8 @@ app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
 // database connection
+
+// mySQL
 
 const pool = mysql.createPool({
     host: process.env.DB_HOST,
@@ -37,6 +43,23 @@ pool.getConnection((err, conn) => {
         conn.release()
     }
 })
+
+// mongoDB
+
+const clientOptions = { serverApi: { version: '1', strict: true, deprecationErrors: true } };
+async function run() {
+  try {
+    // Create a Mongoose client with a MongoClientOptions object to set the Stable API version
+    await mongoose.connect(uri, clientOptions);
+    await mongoose.connection.db.admin().command({ ping: 1 });
+    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+  } finally {
+    // Ensures that the client will close when you finish/error
+    await mongoose.disconnect();
+  }
+}
+run().catch(console.dir);
+
 
 // cors
 
