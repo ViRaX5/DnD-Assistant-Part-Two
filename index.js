@@ -46,17 +46,18 @@ pool.getConnection((err, conn) => {
 
 // mongoDB
 
-const clientOptions = { serverApi: { version: '1', strict: true, deprecationErrors: true } };
+const clientOptions = { serverApi: { version: '1', strict: true, deprecationErrors: true } }
 async function run() {
-  try {
-    // Create a Mongoose client with a MongoClientOptions object to set the Stable API version
-    await mongoose.connect(uri, clientOptions);
-    await mongoose.connection.db.admin().command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
-  } finally {
-    // Ensures that the client will close when you finish/error
-    await mongoose.disconnect();
-  }
+    try {
+        // Create a Mongoose client with a MongoClientOptions object to set the Stable API version
+        await mongoose.connect(uri, clientOptions);
+        await mongoose.connection.db.admin().command({ ping: 1 })
+        console.log("Pinged your deployment. You successfully connected to MongoDB!")
+    } 
+    catch (err) {
+        // Ensures that the client will close when you finish/error
+        console.error("MongoDB connection error:", err)
+    }
 }
 run().catch(console.dir);
 
@@ -78,7 +79,7 @@ app.use((req, res, next) => {
 // get/post/etc.
 
 app.post('/api/signup', (req, res) => {
-    loginSignupModule.signUp(req,res, pool)
+    loginSignupModule.signUp(req, res, pool)
     // look into json web tokens to keep track of which account it is that is logged in
 })
 
@@ -87,24 +88,28 @@ app.post('/api/login', (req, res) => {
     // look into json web tokens to keep track of which account it is that is logged in
 })
 
+app.get('/api/campaignListID', (req, res) => {
+    campaignListModule.getCampaignsListByID(req, res, pool)
+})
+
+app.get('/api/campaignListCode', (req, res) => {
+    campaignListModule.getCampaignsListByCode(req, res, pool)
+})
+
 app.get('/api/campaignList', (req, res) => {
     campaignListModule.getCampaignsList(req, res, pool)
 })
 
 app.get('/api/generateCode', (req, res) => {
     helper.getUniqueJoinCode(req, res, pool)
-    // try {
-    //     const safeCode = await helper.getUniqueJoinCode(pool)
-    //     return res.json({success: true, join_code: safeCode})
-    // }
-    // catch (err) {
-    //     console.error("Code generation failed:", err)
-    //     return res.status(500).json({ success: false, error: "Server error" })
-    // }
 })
 
 app.post('/api/createNewCampaign', (req, res) => {
     campaignListModule.createNewCampaign(req, res, pool)
+})
+
+app.post('/api/joinCampaign', (req, res) => {
+    campaignListModule.joinNewCampaign(req, res, pool)
 })
 
 app.get("/", (req, res) => {
@@ -123,12 +128,24 @@ const io = require('socket.io')(server, {
 });
 
 io.on('connection', (socket) => {
-    console.log('Backend Connection', socket.id);
+    console.log('Backend Connection', socket.id)
 
     socket.on('map:moveToken', (data) => {
         // Broadcast sends the data to EVERYONE connected EXCEPT the person who just moved the token
-        socket.broadcast.emit('map:updateToken', data);
+        socket.broadcast.emit('map:updateToken', data)
     });
 })
 
 
+process.on('SIGINT', async () => {
+    console.log("Shutting down server...")
+
+    // Close MySQL
+    pool.end();
+
+    // Close MongoDB
+    await mongoose.connection.close()
+    console.log("Database connections closed cleanly.")
+
+    process.exit(0)
+})

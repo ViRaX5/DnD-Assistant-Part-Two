@@ -50,11 +50,11 @@ async function signUp(req, res, connection) {
                 errors.push({ field: "email", msg: 'This email already has an account' })
             }
         }
-        catch (dbErr) {
-            console.error("Database error during email check: ", dbErr)
+        catch (err) {
+            console.error("Database error during email check: ", err)
 
             const clientMessage = process.env.NODE_ENV === 'development'
-                ? dbErr.message
+                ? err.message
                 : "An internal server error occurred."
 
             return res.status(500).json({ success: false, error: clientMessage })
@@ -117,7 +117,7 @@ async function logIn(req, res, connection) {
         console.error("Login processing error: ", err)
 
         const clientMessage = process.env.NODE_ENV === 'development'
-            ? dbErr.message
+            ? err.message
             : "An internal server error occurred."
 
         return res.status(500).json({ success: false, error: clientMessage })
