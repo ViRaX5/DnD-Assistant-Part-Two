@@ -112,6 +112,22 @@ app.post('/api/joinCampaign', (req, res) => {
     campaignListModule.joinNewCampaign(req, res, pool)
 })
 
+app.get('/api/campaignListCampaignAndDM', (req, res) => {
+    campaignListModule.getSessionPlayersExceptDM(req, res, pool)
+})
+
+app.delete('/api/campaignListNewDM', (req, res) => {
+    campaignListModule.setUpNewDM(req, res, pool)
+})
+
+app.delete('/api/campaignListPlayerLeave', (req, res) => {
+    campaignListModule.leaveSession(req, res, pool)
+})
+
+app.delete('/api/deleteEntireCampaign', (req, res) => {
+    campaignListModule.deleteEntireCampaign(req, res, pool)
+})
+
 app.get("/", (req, res) => {
     res.send(`This is localhost:${port}`)
 })
