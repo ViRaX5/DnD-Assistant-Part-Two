@@ -9,6 +9,8 @@ const fs = require('fs');
 const helper = require('./Modules/helperFunctionsModule');
 const mongoose = require('mongoose');
 const uri = `mongodb+srv://amit505r_db_user:${process.env.MONGODB_PASSWORD}@cluster0.6a6vfcx.mongodb.net/?appName=Cluster0`;
+const multer  = require('multer')
+const { S3Client, ListBucketsCommand } = require('@aws-sdk/client-s3')
 // const { MongoClient, ServerApiVersion } = require('mongodb');
 // const uri = `mongodb+srv://amit505r_db_user:${process.env.MONGODB_PASSWORD}@cluster0.6a6vfcx.mongodb.net/?appName=Cluster0`;
 
@@ -76,6 +78,21 @@ app.use((req, res, next) => {
     next()
 })
 
+// setup multer
+
+const storage = multer.memoryStorage()
+const upload = multer({ storage: storage })
+
+// s3
+
+const s3 = new S3Client({
+    credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+    },
+    region: process.env.BUCKET_REGION
+})
+
 // get/post/etc.
 
 app.post('/api/signup', (req, res) => {
@@ -126,6 +143,12 @@ app.delete('/api/campaignListPlayerLeave', (req, res) => {
 
 app.delete('/api/deleteEntireCampaign', (req, res) => {
     campaignListModule.deleteEntireCampaign(req, res, pool)
+})
+
+app.post('/api/DMUpload', upload.single('media'), async (req, res) => {
+    console.log("req.body", req.body)
+    console.log("req.file", req.file)
+    // req.file.buffer this is the actual image that we will need to send
 })
 
 app.get("/", (req, res) => {
