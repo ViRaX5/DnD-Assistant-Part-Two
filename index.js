@@ -9,8 +9,11 @@ const fs = require('fs');
 const helper = require('./Modules/helperFunctionsModule');
 const mongoose = require('mongoose');
 const uri = `mongodb+srv://amit505r_db_user:${process.env.MONGODB_PASSWORD}@cluster0.6a6vfcx.mongodb.net/?appName=Cluster0`;
-const multer  = require('multer')
-const { S3Client, ListBucketsCommand } = require('@aws-sdk/client-s3')
+const multer = require('multer');
+const { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
+const crypto = require('crypto')
+const sharp = require('sharp')
+const DMModule = require('./Modules/DMModule')
 // const { MongoClient, ServerApiVersion } = require('mongodb');
 // const uri = `mongodb+srv://amit505r_db_user:${process.env.MONGODB_PASSWORD}@cluster0.6a6vfcx.mongodb.net/?appName=Cluster0`;
 
@@ -55,7 +58,7 @@ async function run() {
         await mongoose.connect(uri, clientOptions);
         await mongoose.connection.db.admin().command({ ping: 1 })
         console.log("Pinged your deployment. You successfully connected to MongoDB!")
-    } 
+    }
     catch (err) {
         // Ensures that the client will close when you finish/error
         console.error("MongoDB connection error:", err)
@@ -78,20 +81,14 @@ app.use((req, res, next) => {
     next()
 })
 
-// setup multer
+// setup multer, s3, crypto
 
 const storage = multer.memoryStorage()
 const upload = multer({ storage: storage })
 
-// s3
+const client = new S3Client({ region: process.env.BUCKET_REGION })
 
-const s3 = new S3Client({
-    credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
-    },
-    region: process.env.BUCKET_REGION
-})
+const randomImageName = (bytes = 32) => crypto.randomBytes(bytes).toString('hex')
 
 // get/post/etc.
 
@@ -145,10 +142,62 @@ app.delete('/api/deleteEntireCampaign', (req, res) => {
     campaignListModule.deleteEntireCampaign(req, res, pool)
 })
 
-app.post('/api/DMUpload', upload.single('media'), async (req, res) => {
-    console.log("req.body", req.body)
-    console.log("req.file", req.file)
+app.post('/api/DM/uploadAsset', upload.single('media'), async (req, res) => {
+    DMModule.uploadAssets(req, res, pool, client)
+
+    // if (!req.file) {
+    //     return res.status(400).json({ success: false, error: "No file uploaded." })
+    // }
+
+    // const campaignId = req.body.campaignID
+    // const uploaderId = req.body.uploaderID
+    // const assetType = req.body.assetType || 'map'
+
+    // if (!campaignId || !uploaderId) {
+    //     return res.status(400).json({ success: false, error: "Missing campaign or user IDs." });
+    // }
+
+    // const buffer = await sharp(req.file.buffer).resize({ height: 3000, width: 3000, fit: "contain" }).toBuffer() //might need to change values
+    // const imageName = randomImageName()
+
+    // const params = {
+    //     Bucket: process.env.BUCKET_NAME,
+    //     Key: imageName,
+    //     Body: buffer,
+    //     ContentType: req.file.mimetype
+    // }
+
+    // try {
+    //     const command = new PutObjectCommand(params)
+    //     await client.send(command)
+
+    //     const [dbResult] = await pool.promise().query(`
+    //         INSERT INTO campaign_assets 
+    //         (campaign_id, uploader_id, s3_key, original_name, asset_type) 
+    //         VALUES (?, ?, ?, ?, ?)`, [campaignId, uploaderId, imageName, req.file.originalname, assetType])
+
+    //     return res.json({
+    //         success: true,
+    //         message: "Asset uploaded and saved to database!",
+    //         assetId: dbResult.insertId,
+    //         imageName: imageName
+    //     })
+    // }
+    // catch (err) {
+    //     console.error("Upload process failed:", err)
+    //     return res.status(500).json({ success: false, error: "An error occurred during the upload process." })
+    // }
+
+
     // req.file.buffer this is the actual image that we will need to send
+})
+
+app.get("/api/DM/getAsset", async (req, res) => {
+    DMModule.getAssets(req, res, pool, client)
+})
+
+app.delete("/api/DM/deleteAsset", async (req, res) => {
+    DMModule.deleteAssets(req, res, pool, client)
 })
 
 app.get("/", (req, res) => {

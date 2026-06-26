@@ -1,3 +1,5 @@
+const crypto = require('crypto')
+
 function capitalizeComplexName(name) {
     if (!name) return name;
     return name.toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase())
@@ -38,7 +40,10 @@ async function getUniqueJoinCode(req, res, connection) {
     return res.json({success: true, join_code: newCode})
 }
 
+const randomImageName = (bytes = 32) => crypto.randomBytes(bytes).toString('hex')
+
 module.exports = {
     capitalizeComplexName,
-    getUniqueJoinCode
+    getUniqueJoinCode,
+    randomImageName
 }
