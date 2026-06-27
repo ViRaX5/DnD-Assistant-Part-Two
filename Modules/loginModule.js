@@ -28,7 +28,7 @@ function validateLogin(email, password) {
     let errors = []
 
     if (!email) errors.push({ field: 'emailLogin', msg: 'Email is required' });
-
+    else if (!emailRegex.test(email)) { errors.push({ field: 'emailLogin', msg: 'Please enter a valid email address' }) }
     if (!password) {
         errors.push({ field: 'passwordLogin', msg: 'Password is required' });
     }
