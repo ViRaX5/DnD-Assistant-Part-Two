@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-const dndApiModule = require('./dndApiModule');
 
 const characterSchema = new mongoose.Schema({
     userId: { type: Number, required: true },
@@ -184,7 +183,12 @@ async function createNewCampaign(req, res, connection) {
 }
 
 async function joinNewCampaign(req, res, connection) {
-    const { userId, campaignCode, characterName, className, race, stats, currency, equipment, skills, languages, tools } = req.body;
+    const {
+        userId, campaignCode, characterName, className, race,
+        classDisplayName, raceDisplayName, level, xp,
+        stats, modifiers, proficiencyBonus, combat, health, savingThrows,
+        currency, equipment, skills, languages, tools
+    } = req.body;
 
     try {
         // 1. Verify the Join Code in MySQL and get the Campaign ID
@@ -210,30 +214,29 @@ async function joinNewCampaign(req, res, connection) {
             return res.status(400).json({ success: false, error: "You are already a member of this campaign." });
         }
 
-        // 3. Compute derived stats (modifiers, HP, AC, proficiency bonus, saving throws,
-        // structured skills) from the D&D API's class/race data, then save the complete
-        // Character Sheet to MongoDB
-        const computedSheet = await dndApiModule.computeCharacterSheet(className, race, stats, skills);
-
+        // 3. Save the complete Character Sheet to MongoDB. The frontend has already
+        // fetched the D&D API's class/race data and computed the derived stats
+        // (modifiers, HP, AC, proficiency bonus, saving throws, structured skills) -
+        // this just persists what it sent.
         const newCharacter = new Character({
             userId: userId,
             campaignId: campaignId,
             characterName: characterName,
             className: className,
             race: race,
-            classDisplayName: computedSheet.classDisplayName,
-            raceDisplayName: computedSheet.raceDisplayName,
-            level: computedSheet.level,
-            xp: computedSheet.xp,
+            classDisplayName: classDisplayName,
+            raceDisplayName: raceDisplayName,
+            level: level,
+            xp: xp,
             stats: stats,
-            modifiers: computedSheet.modifiers,
-            proficiencyBonus: computedSheet.proficiencyBonus,
-            combat: computedSheet.combat,
-            health: computedSheet.health,
-            savingThrows: computedSheet.savingThrows,
+            modifiers: modifiers,
+            proficiencyBonus: proficiencyBonus,
+            combat: combat,
+            health: health,
+            savingThrows: savingThrows,
             currency: currency,
             equipment: equipment,
-            skills: computedSheet.skills,
+            skills: skills,
             languages: languages,
             tools: tools
         });
