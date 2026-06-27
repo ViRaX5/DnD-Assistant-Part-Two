@@ -1,6 +1,8 @@
 const argon2 = require('argon2');
 const helper = require('./helperFunctionsModule')
 
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
 function validateSignUp(firstname, lastname, email, password, repeatPassword) {
     let errors = [];
 
@@ -10,6 +12,7 @@ function validateSignUp(firstname, lastname, email, password, repeatPassword) {
     else if (lastname.length > 40) { errors.push({ field: 'lastname', msg: "Last name can't be longer than 40 characters" }) }
     if (!email) { errors.push({ field: 'email', msg: 'Email is required' }) }
     else if (email.length > 254) { errors.push({ field: 'email', msg: "Email can't be longer than 254 characters" }) }
+    else if (!emailRegex.test(email)) { errors.push({ field: 'email', msg: 'Please enter a valid email address' }) }
     if (!password) { errors.push({ field: 'password', msg: 'Password is required' }) }
     else if (password.length < 8) { errors.push({ field: 'password', msg: 'Password must contain at least 8 characters' }) }
     else if (password.length > 128) { errors.push({ field: 'password', msg: "Password can't be longer than 128 characters" }) }

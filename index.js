@@ -15,6 +15,7 @@ const crypto = require('crypto')
 const sharp = require('sharp')
 const DMModule = require('./Modules/DMModule')
 const chatModule = require('./Modules/chatModule')
+const dndApiModule = require('./Modules/dndApiModule')
 // const { MongoClient, ServerApiVersion } = require('mongodb');
 // const uri = `mongodb+srv://amit505r_db_user:${process.env.MONGODB_PASSWORD}@cluster0.6a6vfcx.mongodb.net/?appName=Cluster0`;
 
@@ -125,6 +126,62 @@ app.post('/api/createNewCampaign', (req, res) => {
 
 app.post('/api/joinCampaign', (req, res) => {
     campaignListModule.joinNewCampaign(req, res, pool)
+})
+
+app.get('/api/getCharacter', (req, res) => {
+    campaignListModule.getCharacter(req, res)
+})
+
+// Thin proxies to dnd5eapi.co - server-to-server, so they're not subject to
+// the browser-side CORS/antivirus blocking issues a direct frontend fetch can hit.
+app.get('/api/dndClasses', async (req, res) => {
+    try {
+        const data = await dndApiModule.fetchClasses()
+        return res.json(data)
+    } catch (err) {
+        console.error("Failed to fetch classes from dnd5eapi: ", err)
+        return res.status(500).json({ success: false, error: "An internal server error occurred." })
+    }
+})
+
+app.get('/api/dndRaces', async (req, res) => {
+    try {
+        const data = await dndApiModule.fetchRaces()
+        return res.json(data)
+    } catch (err) {
+        console.error("Failed to fetch races from dnd5eapi: ", err)
+        return res.status(500).json({ success: false, error: "An internal server error occurred." })
+    }
+})
+
+app.get('/api/dndClassDetails', async (req, res) => {
+    try {
+        const data = await dndApiModule.fetchClassDetails(req.query.class)
+        return res.json(data)
+    } catch (err) {
+        console.error("Failed to fetch class details from dnd5eapi: ", err)
+        return res.status(500).json({ success: false, error: "An internal server error occurred." })
+    }
+})
+
+app.get('/api/dndRaceDetails', async (req, res) => {
+    try {
+        const data = await dndApiModule.fetchRaceDetails(req.query.race)
+        return res.json(data)
+    } catch (err) {
+        console.error("Failed to fetch race details from dnd5eapi: ", err)
+        return res.status(500).json({ success: false, error: "An internal server error occurred." })
+    }
+})
+
+app.get('/api/dndEquipmentCategory', async (req, res) => {
+    try {
+        const data = await dndApiModule.fetchEquipmentCategory(req.query.category)
+        return res.json(data)
+    } catch (err) {
+        console.error("Failed to fetch equipment category from dnd5eapi: ", err)
+        return res.status(500).json({ success: false, error: "An internal server error occurred." })
+    }
 })
 
 app.get('/api/campaignListCampaignAndDM', (req, res) => {

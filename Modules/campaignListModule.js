@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const dndApiModule = require('./dndApiModule');
 
 const characterSchema = new mongoose.Schema({
     userId: { type: Number, required: true },
@@ -6,14 +7,43 @@ const characterSchema = new mongoose.Schema({
     characterName: { type: String, required: true },
     className: String,
     race: String,
+    classDisplayName: String,
+    raceDisplayName: String,
+    level: { type: Number, default: 1 },
+    xp: { type: Number, default: 0 },
     stats: {
         str: Number, dex: Number, con: Number,
         int: Number, wis: Number, cha: Number
     },
+    modifiers: {
+        str: Number, dex: Number, con: Number,
+        int: Number, wis: Number, cha: Number
+    },
+    proficiencyBonus: { type: Number, default: 2 },
+    combat: {
+        armorClass: Number,
+        initiative: Number,
+        speed: Number
+    },
+    health: {
+        current: Number,
+        max: Number,
+        temp: { type: Number, default: 0 }
+    },
+    savingThrows: [{
+        id: String, name: String, modifier: Number, proficient: Boolean
+    }],
+    currency: {
+        gold: { type: Number, default: 0 },
+        silver: { type: Number, default: 0 },
+        copper: { type: Number, default: 0 }
+    },
     equipment: [String],
 
     // Split the proficiencies into functional categories
-    skills: [String],      // e.g., ["Stealth", "Acrobatics"]
+    skills: [{
+        id: String, name: String, attribute: String, modifier: Number, proficient: Boolean
+    }],
     languages: [String],   // e.g., ["Elvish", "Dwarvish"]
     tools: [String],       // e.g., ["Lute", "Thieves' Tools"]
 
@@ -154,7 +184,7 @@ async function createNewCampaign(req, res, connection) {
 }
 
 async function joinNewCampaign(req, res, connection) {
-    const { userId, campaignCode, characterName, className, race, stats, equipment, skills, languages, tools } = req.body;
+    const { userId, campaignCode, characterName, className, race, stats, currency, equipment, skills, languages, tools } = req.body;
 
     try {
         // 1. Verify the Join Code in MySQL and get the Campaign ID
@@ -180,16 +210,30 @@ async function joinNewCampaign(req, res, connection) {
             return res.status(400).json({ success: false, error: "You are already a member of this campaign." });
         }
 
-        // 3. Save the complex Character Sheet to MongoDB
+        // 3. Compute derived stats (modifiers, HP, AC, proficiency bonus, saving throws,
+        // structured skills) from the D&D API's class/race data, then save the complete
+        // Character Sheet to MongoDB
+        const computedSheet = await dndApiModule.computeCharacterSheet(className, race, stats, skills);
+
         const newCharacter = new Character({
             userId: userId,
             campaignId: campaignId,
             characterName: characterName,
             className: className,
             race: race,
+            classDisplayName: computedSheet.classDisplayName,
+            raceDisplayName: computedSheet.raceDisplayName,
+            level: computedSheet.level,
+            xp: computedSheet.xp,
             stats: stats,
+            modifiers: computedSheet.modifiers,
+            proficiencyBonus: computedSheet.proficiencyBonus,
+            combat: computedSheet.combat,
+            health: computedSheet.health,
+            savingThrows: computedSheet.savingThrows,
+            currency: currency,
             equipment: equipment,
-            skills: skills,
+            skills: computedSheet.skills,
             languages: languages,
             tools: tools
         });
@@ -203,12 +247,58 @@ async function joinNewCampaign(req, res, connection) {
             [userId, campaignId, "player", characterName]
         );
 
-        // 5. Success! Send the campaign name back so the frontend can update the UI
-        return res.json({ success: true, campaignName: campaignName });
+        // 5. Success! Send the campaign name and id back so the frontend can update the UI
+        return res.json({ success: true, campaignName: campaignName, campaignId: campaignId });
 
     } catch (err) {
         console.error("Database error during campaign join: ", err);
         return res.status(500).json({ success: false, error: "An internal server error occurred." });
+    }
+}
+
+async function getCharacter(req, res) {
+    const campaignId = Number(req.query.campaignId)
+    const userId = Number(req.query.userId)
+
+    if (!campaignId || !userId) {
+        return res.status(400).json({ success: false, error: "campaignId and userId are required" })
+    }
+
+    try {
+        const character = await Character.findOne({ campaignId, userId })
+
+        if (!character) {
+            return res.status(404).json({ success: false, error: "Character not found." })
+        }
+
+        const responseData = {
+            name: character.characterName,
+            race: character.raceDisplayName,
+            class: character.classDisplayName,
+            level: character.level,
+            xp: character.xp,
+            attributes: {
+                strength: { score: character.stats.str, modifier: character.modifiers.str },
+                dexterity: { score: character.stats.dex, modifier: character.modifiers.dex },
+                constitution: { score: character.stats.con, modifier: character.modifiers.con },
+                intelligence: { score: character.stats.int, modifier: character.modifiers.int },
+                wisdom: { score: character.stats.wis, modifier: character.modifiers.wis },
+                charisma: { score: character.stats.cha, modifier: character.modifiers.cha }
+            },
+            combat: character.combat,
+            health: character.health,
+            proficiencyBonus: character.proficiencyBonus,
+            savingThrows: character.savingThrows,
+            skills: character.skills,
+            currency: character.currency,
+            equipment: character.equipment.map(name => ({ name, modifier: '' }))
+        }
+
+        return res.json({ success: true, character: responseData })
+    }
+    catch (err) {
+        console.error("Database error during character fetch: ", err)
+        return res.status(500).json({ success: false, error: "An internal server error occurred." })
     }
 }
 
@@ -303,6 +393,7 @@ module.exports = {
     getCampaignsListByCode,
     getCampaignsList,
     joinNewCampaign,
+    getCharacter,
     getSessionPlayersExceptDM,
     leaveSession,
     setUpNewDM,
