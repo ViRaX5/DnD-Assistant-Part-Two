@@ -14,6 +14,7 @@ const { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } = re
 const crypto = require('crypto')
 const sharp = require('sharp')
 const DMModule = require('./Modules/DMModule')
+const chatModule = require('./Modules/chatModule')
 // const { MongoClient, ServerApiVersion } = require('mongodb');
 // const uri = `mongodb+srv://amit505r_db_user:${process.env.MONGODB_PASSWORD}@cluster0.6a6vfcx.mongodb.net/?appName=Cluster0`;
 
@@ -200,6 +201,10 @@ app.delete("/api/DM/deleteAsset", async (req, res) => {
     DMModule.deleteAssets(req, res, pool, client)
 })
 
+app.get('/api/chatHistory', (req, res) => {
+    chatModule.getChatHistory(req, res)
+})
+
 app.get("/", (req, res) => {
     res.send(`This is localhost:${port}`)
 })
@@ -215,12 +220,31 @@ const io = require('socket.io')(server, {
     }
 });
 
+// socket.id -> { userId, campaignId, isDM }
+const socketContext = new Map()
+
 io.on('connection', (socket) => {
     console.log('Backend Connection', socket.id)
 
+    socket.on('session:join', ({ campaignId, userId, isDM }) => {
+        socketContext.set(socket.id, { userId, campaignId, isDM })
+        socket.join(`campaign:${campaignId}`)
+    });
+
     socket.on('map:moveToken', (data) => {
-        // Broadcast sends the data to EVERYONE connected EXCEPT the person who just moved the token
-        socket.broadcast.emit('map:updateToken', data)
+        const ctx = socketContext.get(socket.id)
+        if (!ctx) return
+
+        // Sends the data to everyone else in the same campaign room, excluding the sender
+        socket.to(`campaign:${ctx.campaignId}`).emit('map:updateToken', data)
+    });
+
+    socket.on('chat:send', (payload) => {
+        chatModule.handleMessageSend(io, socket, socketContext, payload)
+    });
+
+    socket.on('disconnect', () => {
+        socketContext.delete(socket.id)
     });
 })
 

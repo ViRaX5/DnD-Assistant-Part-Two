@@ -234,7 +234,7 @@ async function getSessionPlayersExceptDM(req, res, connection) {
 async function leaveSession(req, res, connection) {
     const userID = req.query.leavingUserID
     const campaignID = req.query.campaignID
-    
+
     try {
         const response = await connection.promise().query(
             `DELETE FROM capmaign_participants WHERE user_id = ? AND campaign_id = ?`, [userID, campaignID]
@@ -276,13 +276,13 @@ async function deleteEntireCampaign(req, res, connection) {
     try {
         // 1. Delete all participants from MySQL (the DM)
         await connection.promise().query(
-            "DELETE FROM capmaign_participants WHERE campaign_id = ?", 
+            "DELETE FROM capmaign_participants WHERE campaign_id = ?",
             [campaignID]
         )
 
         // 2. Delete the actual Campaign from MySQL
         await connection.promise().query(
-            "DELETE FROM campaigns WHERE id = ?", 
+            "DELETE FROM campaigns WHERE id = ?",
             [campaignID]
         )
 
