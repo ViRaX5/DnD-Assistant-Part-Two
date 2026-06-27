@@ -1,5 +1,6 @@
 const argon2 = require('argon2');
 const helper = require('./helperFunctionsModule')
+const jwt = require('jsonwebtoken');
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -72,10 +73,36 @@ async function signUp(req, res, connection) {
     try {
         const hashedPassord = await argon2.hash(password);
 
-        await connection.promise().query('insert into users_info (first_name, last_name, email, hashed_password) values (?,?,?,?)', [firstname, lastname, email, hashedPassord])
+        await connection.promise().query('INSERT INTO users_info (first_name, last_name, email, hashed_password) values (?,?,?,?)', [firstname, lastname, email, hashedPassord])
 
-        return res.json({ success: true, redirect: './campaignList.html' })
-        // look into json web tokens to keep track of which account it is that is logged in
+        const [result] = await connection.promise().query(
+            'SELECT id FROM users_info WHERE email = ?', [email]
+        )
+        if (results.length === 0) {
+            return res.status(500).json({ success: false, error: 'Error retreiving new account' })
+        }
+
+        const user = results[0]
+
+        helper.reduceTokens(connection, user.id)
+        
+        const accessToken = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '15m' })
+        const refreshToken = jwt.sign({ userId: user.id }, process.env.REFRESH_TOKEN_SECRET, { expiresIn: '7d' })
+
+        const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days from now in miliseconds
+        await connection.promise().query(
+            'INSERT INTO user_sessions (user_id, refresh_token, expires_at) VALUES (?, ?, ?)',
+            [user.id, refreshToken, expiresAt]
+        )
+
+        res.cookie('refreshToken', refreshToken, {
+            httpOnly: true, // Hides it from hackers' JavaScript
+            secure: process.env.NODE_ENV === 'production', // Requires HTTPS in production
+            sameSite: 'Strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days in milliseconds
+        })
+
+        return res.json({ success: true, token: accessToken, redirect: './campaignList.html' })
     }
     catch (err) {
         console.error("Database/Hashing error: ", err)
@@ -114,7 +141,25 @@ async function logIn(req, res, connection) {
             return res.status(401).json({ success: false, error: 'Invalid email or password' })
         }
 
-        return res.json({ success: true, redirect: './campaignList.html' })
+        helper.reduceTokens(connection, user.id)
+
+        const accessToken = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '15m' })
+        const refreshToken = jwt.sign({ userId: user.id }, process.env.REFRESH_TOKEN_SECRET, { expiresIn: '7d' })
+
+        const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+        await connection.promise().query(
+            'INSERT INTO user_sessions (user_id, refresh_token, expires_at) VALUES (?, ?, ?)',
+            [user.id, refreshToken, expiresAt]
+        )
+
+        res.cookie('refreshToken', refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'Strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000
+        })
+
+        return res.json({ success: true, token: accessToken, redirect: './campaignList.html' })
     }
     catch (err) {
         console.error("Login processing error: ", err)

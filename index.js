@@ -11,10 +11,11 @@ const mongoose = require('mongoose');
 const uri = `mongodb+srv://amit505r_db_user:${process.env.MONGODB_PASSWORD}@cluster0.6a6vfcx.mongodb.net/?appName=Cluster0`;
 const multer = require('multer');
 const { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
-const crypto = require('crypto')
-const sharp = require('sharp')
-const DMModule = require('./Modules/DMModule')
-const chatModule = require('./Modules/chatModule')
+const crypto = require('crypto');
+const sharp = require('sharp');
+const DMModule = require('./Modules/DMModule');
+const chatModule = require('./Modules/chatModule');
+const cookieParser = require('cookie-parser');
 // const { MongoClient, ServerApiVersion } = require('mongodb');
 // const uri = `mongodb+srv://amit505r_db_user:${process.env.MONGODB_PASSWORD}@cluster0.6a6vfcx.mongodb.net/?appName=Cluster0`;
 
@@ -22,6 +23,7 @@ const port = process.env.PORT || 8080
 
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
+app.use(cookieParser())
 
 // database connection
 
@@ -75,10 +77,18 @@ const allowedOrigin = process.env.NODE_ENV === 'production' ? 'https://virax5.gi
 app.use((req, res, next) => {
     res.set({
         'Access-Control-Allow-Origin': allowedOrigin,
-        'Access-Control-Allow-Headers': 'Origin, X-Requested-With, Content-Type, Accept',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE',
-        'Content-Type': 'application/json'
+        'Access-Control-Allow-Credentials': 'true',
+        'Access-Control-Allow-Headers': 'Origin, X-Requested-With, Content-Type, Accept, Authorization',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        // 'Content-Type': 'application/json'
     })
+
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(200)
+    }
+    if (!res.get('Content-Type')) {
+        res.set('Content-Type', 'application/json')
+    }
     next()
 })
 
@@ -92,6 +102,10 @@ const client = new S3Client({ region: process.env.BUCKET_REGION })
 const randomImageName = (bytes = 32) => crypto.randomBytes(bytes).toString('hex')
 
 // get/post/etc.
+
+app.post('/api/refresh', async (req, res) => {
+    helper.refreshToken(req, res, pool)
+})
 
 app.post('/api/signup', (req, res) => {
     loginSignupModule.signUp(req, res, pool)
