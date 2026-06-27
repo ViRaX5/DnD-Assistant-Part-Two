@@ -85,7 +85,7 @@ async function signUp(req, res, connection) {
         const user = results[0]
 
         helper.reduceTokens(connection, user.id)
-        
+
         const accessToken = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '15m' })
         const refreshToken = jwt.sign({ userId: user.id }, process.env.REFRESH_TOKEN_SECRET, { expiresIn: '7d' })
 
@@ -126,7 +126,7 @@ async function logIn(req, res, connection) {
 
     try {
         const [results] = await connection.promise().query(
-            'SELECT email, hashed_password FROM users_info WHERE email = ?', [email]
+            'SELECT id, email, hashed_password FROM users_info WHERE email = ?', [email]
         )
 
         if (results.length === 0) {
