@@ -86,7 +86,39 @@ async function getAssets(req, res, connection, client) {
 }
 
 async function deleteAssets(req, res, connection, client) {
-    
+    const imageId = req.query.imageID
+
+    if (!imageId) {
+        return res.status(400).json({ success: false, error: "Image ID is required." })
+    }
+
+    try {
+        const [rows] = await connection.promise().query(`
+            SELECT * FROM campaign_assets WHERE id = ?`, [imageId])
+        
+        if (!rows.length === 0) {
+            res.status(404).send("Asset not found")
+            return
+        }
+        const asset = rows[0]
+
+        const params = {
+            Bucket: process.env.BUCKET_NAME,
+            Key: asset.s3_key
+        }
+
+        const commad = new DeleteObjectCommand(params)
+        await client.send(commad)
+
+        await connection.promise().query(`
+            DELETE FROM campaign_assets WHERE id = ?`, [imageId])
+        
+        return res.json({ success: true, message: "Asset deleted successfully", deletedId: imageId })
+    }
+    catch (err) {
+        console.error("Failed to delete asset:", err)
+        return res.status(500).json({ success: false, error: "Database or S3 error." })
+    }
 }
 
 module.exports = {
