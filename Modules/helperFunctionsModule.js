@@ -101,7 +101,7 @@ async function reduceTokens(connection, id) {
         await connection.promise().query(
             'DELETE FROM user_sessions WHERE expires_at < NOW()'
         )
-    
+
         const [activeSessions] = await connection.promise().query(
             'SELECT id FROM user_sessions WHERE user_id = ? ORDER BY created_at ASC', [id]
         )
@@ -119,10 +119,57 @@ async function reduceTokens(connection, id) {
     }
 }
 
+function authenticateToken(req, res, next) {
+    const authHeader = req.headers['authorization']
+    const token = authHeader && authHeader.split(' ')[1]
+
+    if (!token) {
+        return res.status(401).json({ success: false, error: "Access denied. No token provided." });
+    }
+
+    jwt.verify(token, process.env.JWT_SECRET, (err, decodedPayload) => {
+        if (err) {
+            return res.status(403).json({ success: false, error: "Invalid or expired access token." })
+        }
+        req.user = decodedPayload
+        next()
+    })
+}
+
+function checkCampaignAccess(connection) {
+    return async (req, res, next) => {
+        const userId = req.user.userId
+
+        const campaignId = req.query.campaignId || req.query.campaignID || req.body.campaignID || req.body.campaignId
+
+        if (!campaignId) return next()
+
+        try {
+            const [participants] = await connection.promise().query(
+                'SELECT users_role FROM capmaign_participants WHERE user_id = ? AND campaign_id = ?',
+                [userId, campaignId]
+            )
+
+            if (participants.length === 0) {
+                return res.status(403).json({ success: false, error: "Access denied: You are not a member of this campaign." })
+            }
+
+            req.user.campaignRole = participants[0].users_role
+
+            next()
+        } catch (err) {
+            console.error("Authorization DB Check Failed:", err)
+            return res.status(500).json({ success: false, error: "Internal server error during access check." })
+        }
+    }
+}
+
 module.exports = {
     capitalizeComplexName,
     getUniqueJoinCode,
     randomImageName,
     refreshToken,
-    reduceTokens
+    reduceTokens,
+    authenticateToken,
+    checkCampaignAccess
 }

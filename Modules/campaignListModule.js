@@ -52,7 +52,7 @@ const characterSchema = new mongoose.Schema({
 const Character = mongoose.model('Character', characterSchema)
 
 async function getCampaignsListByID(req, res, connection) {
-    const userID = req.query.id
+    const userID = req.user.userId
 
     if (!userID) {
         return res.status(400).json({ success: false, error: "User ID is required" })
@@ -132,7 +132,8 @@ async function getCampaignsList(req, res, connection) {
 }
 
 async function createNewCampaign(req, res, connection) {
-    const { joinCode, campaignName, hostID } = req.body
+    const { joinCode, campaignName } = req.body
+    const hostID = req.user.userId
     try {
         await connection.promise().query(
             "INSERT INTO campaigns (name, join_code) values (?,?)", [campaignName, joinCode]
@@ -184,11 +185,12 @@ async function createNewCampaign(req, res, connection) {
 
 async function joinNewCampaign(req, res, connection) {
     const {
-        userId, campaignCode, characterName, className, race,
+        campaignCode, characterName, className, race,
         classDisplayName, raceDisplayName, level, xp,
         stats, modifiers, proficiencyBonus, combat, health, savingThrows,
         currency, equipment, skills, languages, tools
     } = req.body;
+    const userId = req.user.Id
 
     try {
         // 1. Verify the Join Code in MySQL and get the Campaign ID
@@ -261,7 +263,7 @@ async function joinNewCampaign(req, res, connection) {
 
 async function getCharacter(req, res) {
     const campaignId = Number(req.query.campaignId)
-    const userId = Number(req.query.userId)
+    const userId = req.user.userId
 
     if (!campaignId || !userId) {
         return res.status(400).json({ success: false, error: "campaignId and userId are required" })
@@ -307,7 +309,7 @@ async function getCharacter(req, res) {
 
 async function getSessionPlayersExceptDM(req, res, connection) {
     const campaignID = req.query.id
-    const userID = req.query.DM
+    const userID = req.user.userId
 
     try {
         const [campaign] = await connection.promise().query(
@@ -325,7 +327,7 @@ async function getSessionPlayersExceptDM(req, res, connection) {
 }
 
 async function leaveSession(req, res, connection) {
-    const userID = req.query.leavingUserID
+    const userID = req.user.userId
     const campaignID = req.query.campaignID
 
     try {
@@ -340,7 +342,8 @@ async function leaveSession(req, res, connection) {
 }
 
 async function setUpNewDM(req, res, connection) {
-    const { newDMid, leavingUserID, campaignID } = req.query
+    const { newDMid, campaignID } = req.query
+    const leavingUserID = req.user.userId
     // const newDMid = req.newDMid
     // const leavingUserID = req.leavingUserID
     // const campaignID = req.campaignID 

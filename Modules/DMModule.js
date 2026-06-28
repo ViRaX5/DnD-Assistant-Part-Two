@@ -10,7 +10,7 @@ async function uploadAssets(req, res, connection, client) {
     }
 
     const campaignId = req.body.campaignID
-    const uploaderId = req.body.uploaderID
+    const uploaderId = req.user.userId
     const assetType = req.body.assetType || 'map'
 
     if (!campaignId || !uploaderId) {

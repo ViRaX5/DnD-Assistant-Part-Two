@@ -66,7 +66,7 @@ async function handleMessageSend(io, socket, socketContext, payload) {
 
 async function getChatHistory(req, res) {
     const campaignId = Number(req.query.campaignId)
-    const userId = Number(req.query.userId)
+    const userId = req.user.userId
     const isDM = req.query.isDM === 'true'
 
     if (!campaignId || !userId) {

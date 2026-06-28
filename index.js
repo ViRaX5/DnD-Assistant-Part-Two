@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const app = express();
+const cors = require('cors');
 const loginSignupModule = require('./Modules/loginModule');
 const campaignListModule = require('./Modules/campaignListModule');
 // const argon2 = require('argon2'); probably dont need here
@@ -72,7 +73,7 @@ run().catch(console.dir);
 
 // cors
 
-const allowedOrigin = process.env.NODE_ENV === 'production' ? 'https://virax5.github.io' : '*'
+const allowedOrigin = process.env.NODE_ENV === 'production' ? 'https://virax5.github.io' : 'http://127.0.0.1:5500'
 
 app.use((req, res, next) => {
     res.set({
@@ -109,59 +110,57 @@ app.post('/api/refresh', async (req, res) => {
 
 app.post('/api/signup', (req, res) => {
     loginSignupModule.signUp(req, res, pool)
-    // look into json web tokens to keep track of which account it is that is logged in
 })
 
 app.post('/api/login', (req, res) => {
     loginSignupModule.logIn(req, res, pool)
-    // look into json web tokens to keep track of which account it is that is logged in
 })
 
-app.get('/api/campaignListID', (req, res) => {
+app.get('/api/campaignListID', helper.authenticateToken, (req, res) => {
     campaignListModule.getCampaignsListByID(req, res, pool)
 })
 
-app.get('/api/campaignListCode', (req, res) => {
+app.get('/api/campaignListCode', helper.authenticateToken, (req, res) => {
     campaignListModule.getCampaignsListByCode(req, res, pool)
 })
 
-app.get('/api/campaignList', (req, res) => {
+app.get('/api/campaignList', helper.authenticateToken, (req, res) => {
     campaignListModule.getCampaignsList(req, res, pool)
 })
 
-app.get('/api/generateCode', (req, res) => {
+app.get('/api/generateCode', helper.authenticateToken, (req, res) => {
     helper.getUniqueJoinCode(req, res, pool)
 })
 
-app.post('/api/createNewCampaign', (req, res) => {
+app.post('/api/createNewCampaign', helper.authenticateToken, (req, res) => {
     campaignListModule.createNewCampaign(req, res, pool)
 })
 
-app.post('/api/joinCampaign', (req, res) => {
+app.post('/api/joinCampaign', helper.authenticateToken, (req, res) => {
     campaignListModule.joinNewCampaign(req, res, pool)
 })
 
-app.get('/api/getCharacter', (req, res) => {
+app.get('/api/getCharacter', helper.authenticateToken, helper.checkCampaignAccess(pool), (req, res) => {
     campaignListModule.getCharacter(req, res)
 })
 
-app.get('/api/campaignListCampaignAndDM', (req, res) => {
+app.get('/api/campaignListCampaignAndDM', helper.authenticateToken, (req, res) => {
     campaignListModule.getSessionPlayersExceptDM(req, res, pool)
 })
 
-app.delete('/api/campaignListNewDM', (req, res) => {
+app.delete('/api/campaignListNewDM', helper.authenticateToken, (req, res) => {
     campaignListModule.setUpNewDM(req, res, pool)
 })
 
-app.delete('/api/campaignListPlayerLeave', (req, res) => {
+app.delete('/api/campaignListPlayerLeave', helper.authenticateToken, (req, res) => {
     campaignListModule.leaveSession(req, res, pool)
 })
 
-app.delete('/api/deleteEntireCampaign', (req, res) => {
+app.delete('/api/deleteEntireCampaign', helper.authenticateToken, (req, res) => {
     campaignListModule.deleteEntireCampaign(req, res, pool)
 })
 
-app.post('/api/DM/uploadAsset', upload.single('media'), async (req, res) => {
+app.post('/api/DM/uploadAsset', helper.authenticateToken, upload.single('media'), async (req, res) => {
     DMModule.uploadAssets(req, res, pool, client)
 
     // if (!req.file) {
@@ -211,15 +210,15 @@ app.post('/api/DM/uploadAsset', upload.single('media'), async (req, res) => {
     // req.file.buffer this is the actual image that we will need to send
 })
 
-app.get("/api/DM/getAsset", async (req, res) => {
+app.get("/api/DM/getAsset", helper.authenticateToken, helper.checkCampaignAccess(pool), async (req, res) => {
     DMModule.getAssets(req, res, pool, client)
 })
 
-app.delete("/api/DM/deleteAsset", async (req, res) => {
+app.delete("/api/DM/deleteAsset", helper.authenticateToken, async (req, res) => {
     DMModule.deleteAssets(req, res, pool, client)
 })
 
-app.get('/api/chatHistory', (req, res) => {
+app.get('/api/chatHistory', helper.authenticateToken, helper.checkCampaignAccess(pool), (req, res) => {
     chatModule.getChatHistory(req, res)
 })
 
