@@ -80,7 +80,7 @@ app.use((req, res, next) => {
         'Access-Control-Allow-Origin': allowedOrigin,
         'Access-Control-Allow-Credentials': 'true',
         'Access-Control-Allow-Headers': 'Origin, X-Requested-With, Content-Type, Accept, Authorization',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
         // 'Content-Type': 'application/json'
     })
 
@@ -142,6 +142,14 @@ app.post('/api/joinCampaign', helper.authenticateToken, (req, res) => {
 
 app.get('/api/getCharacter', helper.authenticateToken, helper.checkCampaignAccess(pool), (req, res) => {
     campaignListModule.getCharacter(req, res)
+})
+
+app.patch('/api/updateSkillProficiency', helper.authenticateToken, helper.checkCampaignAccess(pool), (req, res) => {
+    campaignListModule.updateSkillProficiency(req, res)
+})
+
+app.patch('/api/updateSavingThrowProficiency', helper.authenticateToken, helper.checkCampaignAccess(pool), (req, res) => {
+    campaignListModule.updateSavingThrowProficiency(req, res)
 })
 
 app.get('/api/campaignListCampaignAndDM', helper.authenticateToken, (req, res) => {

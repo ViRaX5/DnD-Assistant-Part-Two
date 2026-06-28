@@ -307,6 +307,74 @@ async function getCharacter(req, res) {
     }
 }
 
+async function updateSkillProficiency(req, res) {
+    const { campaignId, skillId, proficient } = req.body
+    const userId = req.user.userId
+
+    if (!campaignId || !skillId) {
+        return res.status(400).json({ success: false, error: "campaignId and skillId are required" })
+    }
+
+    try {
+        const character = await Character.findOne({ campaignId, userId })
+
+        if (!character) {
+            return res.status(404).json({ success: false, error: "Character not found." })
+        }
+
+        const skill = character.skills.find(s => s.id === skillId)
+
+        if (!skill) {
+            return res.status(404).json({ success: false, error: "Skill not found." })
+        }
+
+        skill.proficient = proficient
+        skill.modifier = character.modifiers[skill.attribute] + (proficient ? character.proficiencyBonus : 0)
+
+        await character.save();
+
+        return res.json({ success: true, skill: skill })
+    }
+    catch (err) {
+        console.error("Database error during skill update: ", err)
+        return res.status(500).json({ success: false, error: "An internal server error occurred." })
+    }
+}
+
+async function updateSavingThrowProficiency(req, res) {
+    const { campaignId, savingThrowId, proficient } = req.body
+    const userId = req.user.userId
+
+    if (!campaignId || !savingThrowId) {
+        return res.status(400).json({ success: false, error: "campaignId and savingThrowId are required" })
+    }
+
+    try {
+        const character = await Character.findOne({ campaignId, userId })
+
+        if (!character) {
+            return res.status(404).json({ success: false, error: "Character not found." })
+        }
+
+        const savingThrow = character.savingThrows.find(s => s.id === savingThrowId)
+
+        if (!savingThrow) {
+            return res.status(404).json({ success: false, error: "Saving Throw not found." })
+        }
+
+        savingThrow.proficient = proficient
+        savingThrow.modifier = character.modifiers[savingThrow.id] + (proficient ? character.proficiencyBonus : 0)
+
+        await character.save();
+
+        return res.json({ success: true, savingThrow: savingThrow })
+    }
+    catch (err) {
+        console.error("Database error during saving throw update: ", err)
+        return res.status(500).json({ success: false, error: "An internal server error occurred." })
+    }
+}
+
 async function getSessionPlayersExceptDM(req, res, connection) {
     const campaignID = req.query.id
     const userID = req.user.userId
@@ -400,6 +468,8 @@ module.exports = {
     getCampaignsList,
     joinNewCampaign,
     getCharacter,
+    updateSkillProficiency,
+    updateSavingThrowProficiency,
     getSessionPlayersExceptDM,
     leaveSession,
     setUpNewDM,
