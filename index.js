@@ -17,6 +17,7 @@ const sharp = require('sharp');
 const DMModule = require('./Modules/DMModule');
 const chatModule = require('./Modules/chatModule');
 const effectsModule = require('./Modules/effectsModule');
+const shopModule = require('./Modules/shopModule');
 const cookieParser = require('cookie-parser');
 // const { MongoClient, ServerApiVersion } = require('mongodb');
 // const uri = `mongodb+srv://amit505r_db_user:${process.env.MONGODB_PASSWORD}@cluster0.6a6vfcx.mongodb.net/?appName=Cluster0`;
@@ -235,6 +236,10 @@ app.get('/api/getEffects', helper.authenticateToken, helper.checkCampaignAccess(
     effectsModule.getActiveEffects(req, res)
 })
 
+app.get('/api/getShopStatus', helper.authenticateToken, helper.checkCampaignAccess(pool), (req, res) => {
+    shopModule.getShopStatus(req, res)
+})
+
 app.get("/", (req, res) => {
     res.send(`This is localhost:${port}`)
 })
@@ -281,6 +286,10 @@ io.on('connection', (socket) => {
 
     socket.on('effects:add', (payload) => {
         effectsModule.handleEffectAdd(io, socket, socketContext, payload)
+    });
+
+    socket.on('shop:toggle', (payload) => {
+        shopModule.handleShopToggle(io, socket, socketContext, payload)
     });
 
     socket.on('disconnect', () => {
