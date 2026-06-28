@@ -254,15 +254,21 @@ io.on('connection', (socket) => {
     socket.on('session:join', ({ campaignId, userId, isDM }) => {
         socketContext.set(socket.id, { userId, campaignId, isDM })
         socket.join(`campaign:${campaignId}`)
-    });
+    })
 
     socket.on('map:moveToken', (data) => {
         const ctx = socketContext.get(socket.id)
         if (!ctx) return
 
-        // Sends the data to everyone else in the same campaign room, excluding the sender
         socket.to(`campaign:${ctx.campaignId}`).emit('map:updateToken', data)
-    });
+    })
+
+    socket.on('map:changeBackground', (data) => {
+        const ctx = socketContext.get(socket.id)
+        if (!ctx) return
+
+        socket.to(`campaign:${ctx.campaignId}`).emit('map:changeBackground', data)
+    })
 
     socket.on('chat:send', (payload) => {
         chatModule.handleMessageSend(io, socket, socketContext, payload)
