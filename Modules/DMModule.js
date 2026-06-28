@@ -9,6 +9,10 @@ async function uploadAssets(req, res, connection, client) {
         return res.status(400).json({ success: false, error: "No file uploaded." })
     }
 
+    if (!req.file.mimetype.startsWith('image/')) {
+        return res.status(400).json({ success: false, error: "Invalid file type. Please upload an image." });
+    }
+
     const campaignId = req.body.campaignID
     const uploaderId = req.user.userId
     const assetType = req.body.assetType || 'map'
@@ -17,14 +21,36 @@ async function uploadAssets(req, res, connection, client) {
         return res.status(400).json({ success: false, error: "Missing campaign or user IDs." });
     }
 
-    const buffer = await sharp(req.file.buffer).resize({ height: 3000, width: 3000, fit: "contain" }).toBuffer() //might need to change values
+    let buffer
+
+    if (assetType === 'token') {
+        const size = 256
+        const circleSvg = Buffer.from(
+            `<svg width="${size}" height="${size}">
+                <circle cx="${size / 2}" cy="${size / 2}" r="${size / 2}" />
+            </svg>`
+        )
+
+        buffer = await sharp(req.file.buffer)
+            .resize(size,size, {fit: 'cover'})
+            .composite([{input: circleSvg, blend: 'dest-in'}])
+            .png()
+            .toBuffer()
+    }
+    else if (assetType === 'map') {
+        buffer = await sharp(req.file.buffer)
+            .resize({ height: 3000, width: 3000, fit: "inside" }) // might need to chage the values
+            .toBuffer()
+    }
+    
+    const finalMimeType = assetType === 'token' ? 'image/png' : req.file.mimetype;
     const imageName = helper.randomImageName()
 
     const params = {
         Bucket: process.env.BUCKET_NAME,
         Key: imageName,
         Body: buffer,
-        ContentType: req.file.mimetype
+        ContentType: finalMimeType
     }
 
     try {
@@ -68,7 +94,7 @@ async function getAssets(req, res, connection, client) {
             }
             const command = new GetObjectCommand(getObjectParams)
 
-            const temporaryUrl = await getSignedUrl(client, command, { expiresIn: 3600*4 }) // 3600 seconds = hour. *4 because I want 4 hours. can be changed later
+            const temporaryUrl = await getSignedUrl(client, command, { expiresIn: 3600 * 4 }) // 3600 seconds = hour. *4 because I want 4 hours. can be changed later
 
             asset.imageUrl = temporaryUrl
 
@@ -95,7 +121,7 @@ async function deleteAssets(req, res, connection, client) {
     try {
         const [rows] = await connection.promise().query(`
             SELECT * FROM campaign_assets WHERE id = ?`, [imageId])
-        
+
         if (!rows.length === 0) {
             res.status(404).send("Asset not found")
             return
@@ -112,7 +138,7 @@ async function deleteAssets(req, res, connection, client) {
 
         await connection.promise().query(`
             DELETE FROM campaign_assets WHERE id = ?`, [imageId])
-        
+
         return res.json({ success: true, message: "Asset deleted successfully", deletedId: imageId })
     }
     catch (err) {
