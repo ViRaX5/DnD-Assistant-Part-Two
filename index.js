@@ -16,6 +16,7 @@ const crypto = require('crypto');
 const sharp = require('sharp');
 const DMModule = require('./Modules/DMModule');
 const chatModule = require('./Modules/chatModule');
+const effectsModule = require('./Modules/effectsModule');
 const cookieParser = require('cookie-parser');
 // const { MongoClient, ServerApiVersion } = require('mongodb');
 // const uri = `mongodb+srv://amit505r_db_user:${process.env.MONGODB_PASSWORD}@cluster0.6a6vfcx.mongodb.net/?appName=Cluster0`;
@@ -230,6 +231,10 @@ app.get('/api/chatHistory', helper.authenticateToken, helper.checkCampaignAccess
     chatModule.getChatHistory(req, res)
 })
 
+app.get('/api/getEffects', helper.authenticateToken, helper.checkCampaignAccess(pool), (req, res) => {
+    effectsModule.getActiveEffects(req, res)
+})
+
 app.get("/", (req, res) => {
     res.send(`This is localhost:${port}`)
 })
@@ -272,6 +277,10 @@ io.on('connection', (socket) => {
 
     socket.on('chat:send', (payload) => {
         chatModule.handleMessageSend(io, socket, socketContext, payload)
+    });
+
+    socket.on('effects:add', (payload) => {
+        effectsModule.handleEffectAdd(io, socket, socketContext, payload)
     });
 
     socket.on('disconnect', () => {
