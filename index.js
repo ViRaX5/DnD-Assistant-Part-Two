@@ -18,6 +18,7 @@ const DMModule = require('./Modules/DMModule');
 const chatModule = require('./Modules/chatModule');
 const effectsModule = require('./Modules/effectsModule');
 const shopModule = require('./Modules/shopModule');
+const mapModule = require('./Modules/mapModule');
 const cookieParser = require('cookie-parser');
 // const { MongoClient, ServerApiVersion } = require('mongodb');
 // const uri = `mongodb+srv://amit505r_db_user:${process.env.MONGODB_PASSWORD}@cluster0.6a6vfcx.mongodb.net/?appName=Cluster0`;
@@ -250,6 +251,10 @@ app.get('/api/getShopStatus', helper.authenticateToken, helper.checkCampaignAcce
     shopModule.getShopStatus(req, res)
 })
 
+app.get('/api/getMapState', helper.authenticateToken, helper.checkCampaignAccess(pool), (req, res) => {
+    mapModule.getMapState(req, res)
+})
+
 app.get("/", (req, res) => {
     res.send(`This is localhost:${port}`)
 })
@@ -280,6 +285,7 @@ io.on('connection', (socket) => {
         const ctx = socketContext.get(socket.id)
         if (!ctx) return
 
+        mapModule.persistTokenMove(ctx.campaignId, data.tokenId, data.newX, data.newY)
         socket.to(`campaign:${ctx.campaignId}`).emit('map:updateToken', data)
     })
 
@@ -287,7 +293,16 @@ io.on('connection', (socket) => {
         const ctx = socketContext.get(socket.id)
         if (!ctx) return
 
+        mapModule.persistBackground(ctx.campaignId, data.imageUrl)
         socket.to(`campaign:${ctx.campaignId}`).emit('map:changeBackground', data)
+    })
+
+    socket.on('map:reset', () => {
+        const ctx = socketContext.get(socket.id)
+        if (!ctx || !ctx.isDM) return
+
+        mapModule.clearMapState(ctx.campaignId)
+        io.to(`campaign:${ctx.campaignId}`).emit('map:reset')
     })
 
     socket.on('chat:send', (payload) => {
