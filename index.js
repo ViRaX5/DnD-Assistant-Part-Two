@@ -346,6 +346,14 @@ io.on('connection', (socket) => {
         socket.to(`campaign:${ctx.campaignId}`).emit('map:updateToken', data)
     })
 
+    socket.on('map:spawnToken', (data) => {
+        const ctx = socketContext.get(socket.id)
+        if (!ctx) return
+
+        mapModule.persistTokenSpawn(ctx.campaignId, data)
+        socket.to(`campaign:${ctx.campaignId}`).emit('map:spawnToken', data)
+    })
+
     socket.on('map:changeBackground', (data) => {
         const ctx = socketContext.get(socket.id)
         if (!ctx) return

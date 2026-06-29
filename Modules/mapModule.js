@@ -8,7 +8,8 @@ const mapStateSchema = new mongoose.Schema({
         gridX: Number,
         gridY: Number,
         color: String,
-        radius: Number
+        radius: Number,
+        imageUrl: String
     }]
 })
 
@@ -33,6 +34,19 @@ async function getMapState(req, res) {
     catch (err) {
         console.error("Database error during map state fetch: ", err)
         return res.status(500).json({ success: false, error: "An internal server error occurred." })
+    }
+}
+
+async function persistTokenSpawn(campaignId, token) {
+    try {
+        await MapState.findOneAndUpdate(
+            { campaignId },
+            { $push: { tokens: token } },
+            { upsert: true }
+        )
+    }
+    catch (err) {
+        console.error("Database error during token spawn persist: ", err)
     }
 }
 
@@ -82,4 +96,4 @@ async function clearMapState(campaignId) {
     }
 }
 
-module.exports = { MapState, getMapState, persistBackground, persistTokenMove, clearMapState }
+module.exports = { MapState, getMapState, persistBackground, persistTokenMove, persistTokenSpawn, clearMapState }
