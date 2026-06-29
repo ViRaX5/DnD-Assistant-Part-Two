@@ -1,0 +1,2079 @@
+{
+  "info": {
+    "_postman_id": "49e35b51-0961-4d72-b0f1-c9e3647fdc71",
+    "name": "D&D Campaign Assistant API",
+    "description": "All HTTP endpoints exposed by the project's own Node/Express backend (Backend/index.js). Excludes third-party calls (dnd5eapi.co) and Socket.io events, which aren't HTTP requests. Most routes require a Bearer access token obtained from Auth > Log In / Sign Up.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "description": "Signup, login, and JWT refresh. Access tokens are short-lived (15m) and returned in the JSON body; refresh tokens are httpOnly cookies (7d).",
+      "item": [
+        {
+          "name": "Sign Up",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/signup",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "signup"
+              ],
+              "query": []
+            },
+            "description": "Create a new user account. Sets an httpOnly refreshToken cookie and returns a short-lived access token.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"firstname\": \"Noam\",\n    \"lastname\": \"Eilat\",\n    \"email\": \"noam.test@example.com\",\n    \"password\": \"SuperSecret123\",\n    \"repeatPassword\": \"SuperSecret123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Account created",
+              "originalRequest": {},
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": true,\n    \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n    \"redirect\": \"./campaignList.html\"\n}"
+            },
+            {
+              "name": "Validation error / email taken",
+              "originalRequest": {},
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": false,\n    \"errors\": [\n        {\n            \"field\": \"email\",\n            \"msg\": \"This email already has an account\"\n        }\n    ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Log In",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "login"
+              ],
+              "query": []
+            },
+            "description": "Authenticate an existing user. Sets an httpOnly refreshToken cookie and returns a short-lived access token.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"noam.test@example.com\",\n    \"password\": \"SuperSecret123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Logged in",
+              "originalRequest": {},
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": true,\n    \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n    \"redirect\": \"./campaignList.html\"\n}"
+            },
+            {
+              "name": "Invalid credentials",
+              "originalRequest": {},
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": false,\n    \"error\": \"Invalid email or password\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Refresh Access Token",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/refresh",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "refresh"
+              ],
+              "query": []
+            },
+            "description": "Exchanges the httpOnly refreshToken cookie (set during login/signup) for a new access token. Requires the cookie to be sent automatically by the browser/Postman cookie jar."
+          },
+          "response": [
+            {
+              "name": "Token refreshed",
+              "originalRequest": {},
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": true,\n    \"accessToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\"\n}"
+            },
+            {
+              "name": "No/expired refresh token",
+              "originalRequest": {},
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": false,\n    \"error\": \"No refresh token provided.\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Campaigns",
+      "description": "Campaign list, creation, joining, and membership management. All routes require Authorization: Bearer {{accessToken}}.",
+      "item": [
+        {
+          "name": "Get My Campaigns",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/campaignListID",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "campaignListID"
+              ],
+              "query": []
+            },
+            "description": "Returns every campaign the authenticated user participates in, with role, character name, and player count (relational join + aggregate subquery)."
+          },
+          "response": [
+            {
+              "name": "Campaign list",
+              "originalRequest": {},
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": true,\n    \"campaigns\": [\n        {\n            \"campaign_id\": 1,\n            \"campaign_name\": \"The Lost Mine\",\n            \"users_role\": \"DM\",\n            \"character_name\": null,\n            \"amount_of_players\": 3\n        }\n    ]\n}"
+            },
+            {
+              "name": "Missing/invalid token",
+              "originalRequest": {},
+              "status": "Forbidden",
+              "code": 403,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": false,\n    \"error\": \"Invalid or expired access token.\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Campaign By Join Code",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/campaignListCode?code=ABC123",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "campaignListCode"
+              ],
+              "query": [
+                {
+                  "key": "code",
+                  "value": "ABC123"
+                }
+              ]
+            },
+            "description": "Looks up a campaign and its participants by join code (used when joining a session)."
+          },
+          "response": [
+            {
+              "name": "Campaign found",
+              "originalRequest": {},
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": true,\n    \"campaign\": [\n        {\n            \"campaign_id\": 1,\n            \"user_id\": 4\n        }\n    ]\n}"
+            },
+            {
+              "name": "Missing join code",
+              "originalRequest": {},
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": false,\n    \"error\": \"Join code is required\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get All Campaigns (debug)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/campaignList",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "campaignList"
+              ],
+              "query": []
+            },
+            "description": "Returns every campaign/participant row in the system (relational join). Mainly used for debugging/admin purposes."
+          },
+          "response": [
+            {
+              "name": "All campaigns",
+              "originalRequest": {},
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": true,\n    \"campaign\": [\n        {\n            \"id\": 1,\n            \"name\": \"The Lost Mine\",\n            \"join_code\": \"ABC123\",\n            \"user_id\": 1,\n            \"users_role\": \"DM\"\n        }\n    ]\n}"
+            },
+            {
+              "name": "Server error",
+              "originalRequest": {},
+              "status": "Internal Server Error",
+              "code": 500,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": false,\n    \"error\": \"An internal server error occurred.\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Generate Unique Join Code",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/generateCode",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "generateCode"
+              ],
+              "query": []
+            },
+            "description": "Generates a random 6-character join code guaranteed not to collide with an existing campaign."
+          },
+          "response": [
+            {
+              "name": "Code generated",
+              "originalRequest": {},
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": true,\n    \"join_code\": \"Q7T2KD\"\n}"
+            },
+            {
+              "name": "Server error",
+              "originalRequest": {},
+              "status": "Internal Server Error",
+              "code": 500,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": false,\n    \"error\": \"Server error\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Create New Campaign",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/createNewCampaign",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "createNewCampaign"
+              ],
+              "query": []
+            },
+            "description": "Creates a new campaign with the caller as DM. Use a join code obtained from Generate Unique Join Code.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"joinCode\": \"Q7T2KD\",\n    \"campaignName\": \"The Lost Mine of Phandelver\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Campaign created",
+              "originalRequest": {},
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": true,\n    \"campaignID\": 7\n}"
+            },
+            {
+              "name": "Database error",
+              "originalRequest": {},
+              "status": "Internal Server Error",
+              "code": 500,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": false,\n    \"error\": \"An internal server error occurred.\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Join Campaign (Create Character)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/joinCampaign",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "joinCampaign"
+              ],
+              "query": []
+            },
+            "description": "Joins an existing campaign by code and persists the full character sheet (computed client-side) to MongoDB plus the participant row in MySQL.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"campaignCode\": \"Q7T2KD\",\n    \"characterName\": \"Aldric\",\n    \"className\": \"fighter\",\n    \"race\": \"human\",\n    \"classDisplayName\": \"Fighter\",\n    \"raceDisplayName\": \"Human\",\n    \"level\": 1,\n    \"xp\": 0,\n    \"stats\": {\n        \"str\": 16,\n        \"dex\": 14,\n        \"con\": 14,\n        \"int\": 10,\n        \"wis\": 12,\n        \"cha\": 8\n    },\n    \"modifiers\": {\n        \"str\": 3,\n        \"dex\": 2,\n        \"con\": 2,\n        \"int\": 0,\n        \"wis\": 1,\n        \"cha\": -1\n    },\n    \"proficiencyBonus\": 2,\n    \"combat\": {\n        \"armorClass\": 16,\n        \"initiative\": 2,\n        \"speed\": 30\n    },\n    \"health\": {\n        \"current\": 12,\n        \"max\": 12,\n        \"temp\": 0\n    },\n    \"savingThrows\": [\n        {\n            \"id\": \"str\",\n            \"name\": \"Strength\",\n            \"modifier\": 5,\n            \"proficient\": true\n        }\n    ],\n    \"currency\": {\n        \"gold\": 10,\n        \"silver\": 0,\n        \"copper\": 0\n    },\n    \"equipment\": [\n        \"Longsword\",\n        \"Chain Mail\"\n    ],\n    \"skills\": [\n        {\n            \"id\": \"athletics\",\n            \"name\": \"Athletics\",\n            \"attribute\": \"str\",\n            \"modifier\": 5,\n            \"proficient\": true\n        }\n    ],\n    \"languages\": [\n        \"Common\"\n    ],\n    \"tools\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Joined campaign",
+              "originalRequest": {},
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": true,\n    \"campaignName\": \"The Lost Mine of Phandelver\",\n    \"campaignId\": 7\n}"
+            },
+            {
+              "name": "Invalid join code",
+              "originalRequest": {},
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": false,\n    \"error\": \"Invalid Campaign Code.\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Other Participants (except DM)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/campaignListCampaignAndDM?id=7",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "campaignListCampaignAndDM"
+              ],
+              "query": [
+                {
+                  "key": "id",
+                  "value": "7"
+                }
+              ]
+            },
+            "description": "Returns every other participant of a campaign (joined with user info) excluding the caller — used to build the whisper-target list."
+          },
+          "response": [
+            {
+              "name": "Participants",
+              "originalRequest": {},
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": true,\n    \"campaign\": [\n        {\n            \"user_id\": 4,\n            \"campaign_id\": 7,\n            \"users_role\": \"player\",\n            \"charachers_name\": \"Aldric\",\n            \"first_name\": \"Noam\",\n            \"last_name\": \"Eilat\"\n        }\n    ]\n}"
+            },
+            {
+              "name": "Server error",
+              "originalRequest": {},
+              "status": "Internal Server Error",
+              "code": 500,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": false,\n    \"error\": \"An internal server error occurred.\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Transfer DM Role",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/campaignListNewDM?newDMid=4&campaignID=7",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "campaignListNewDM"
+              ],
+              "query": [
+                {
+                  "key": "newDMid",
+                  "value": "4"
+                },
+                {
+                  "key": "campaignID",
+                  "value": "7"
+                }
+              ]
+            },
+            "description": "DM-only. Promotes another participant to DM and removes the caller from the campaign."
+          },
+          "response": [
+            {
+              "name": "DM transferred",
+              "originalRequest": {},
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": true\n}"
+            },
+            {
+              "name": "Not the DM",
+              "originalRequest": {},
+              "status": "Forbidden",
+              "code": 403,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": false,\n    \"error\": \"Only the current DM can transfer the DM role.\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Leave Campaign",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/campaignListPlayerLeave?campaignID=7",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "campaignListPlayerLeave"
+              ],
+              "query": [
+                {
+                  "key": "campaignID",
+                  "value": "7"
+                }
+              ]
+            },
+            "description": "Removes the caller (and only the caller) from a campaign's participant list."
+          },
+          "response": [
+            {
+              "name": "Left campaign",
+              "originalRequest": {},
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": true\n}"
+            },
+            {
+              "name": "Missing/invalid token",
+              "originalRequest": {},
+              "status": "Forbidden",
+              "code": 403,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": false,\n    \"error\": \"Invalid or expired access token.\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Delete Entire Campaign",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/deleteEntireCampaign?campaignID=7",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "deleteEntireCampaign"
+              ],
+              "query": [
+                {
+                  "key": "campaignID",
+                  "value": "7"
+                }
+              ]
+            },
+            "description": "DM-only. Permanently deletes the campaign, all participants, and all character sheets (MySQL + MongoDB)."
+          },
+          "response": [
+            {
+              "name": "Campaign deleted",
+              "originalRequest": {},
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": true\n}"
+            },
+            {
+              "name": "Not the DM",
+              "originalRequest": {},
+              "status": "Forbidden",
+              "code": 403,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": false,\n    \"error\": \"Only the DM can delete this campaign.\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Character & Player",
+      "description": "Reading a character sheet, toggling proficiencies, and shop checkout.",
+      "item": [
+        {
+          "name": "Get Character Sheet",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/getCharacter?campaignId=7",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "getCharacter"
+              ],
+              "query": [
+                {
+                  "key": "campaignId",
+                  "value": "7"
+                }
+              ]
+            },
+            "description": "Returns the calling user's character sheet for a campaign, reshaped for the player-info/equipment UI."
+          },
+          "response": [
+            {
+              "name": "Character sheet",
+              "originalRequest": {},
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": true,\n    \"character\": {\n        \"name\": \"Aldric\",\n        \"race\": \"Human\",\n        \"class\": \"Fighter\",\n        \"level\": 1,\n        \"xp\": 0,\n        \"attributes\": {\n            \"strength\": {\n                \"score\": 16,\n                \"modifier\": 3\n            }\n        },\n        \"combat\": {\n            \"armorClass\": 16,\n            \"initiative\": 2,\n            \"speed\": 30\n        },\n        \"health\": {\n            \"current\": 12,\n            \"max\": 12,\n            \"temp\": 0\n        },\n        \"proficiencyBonus\": 2,\n        \"savingThrows\": [\n            {\n                \"id\": \"str\",\n                \"name\": \"Strength\",\n                \"modifier\": 5,\n                \"proficient\": true\n            }\n        ],\n        \"skills\": [\n            {\n                \"id\": \"athletics\",\n                \"name\": \"Athletics\",\n                \"attribute\": \"str\",\n                \"modifier\": 5,\n                \"proficient\": true\n            }\n        ],\n        \"currency\": {\n            \"gold\": 10,\n            \"silver\": 0,\n            \"copper\": 0\n        },\n        \"equipment\": [\n            {\n                \"name\": \"Longsword\",\n                \"modifier\": \"\"\n            }\n        ]\n    }\n}"
+            },
+            {
+              "name": "Character not found",
+              "originalRequest": {},
+              "status": "Not Found",
+              "code": 404,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": false,\n    \"error\": \"Character not found.\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Skill Proficiency",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/updateSkillProficiency",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "updateSkillProficiency"
+              ],
+              "query": []
+            },
+            "description": "Toggles a skill's proficiency for the calling user's character and recomputes its modifier server-side.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"campaignId\": 7,\n    \"skillId\": \"athletics\",\n    \"proficient\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Skill updated",
+              "originalRequest": {},
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": true,\n    \"skill\": {\n        \"id\": \"athletics\",\n        \"name\": \"Athletics\",\n        \"attribute\": \"str\",\n        \"modifier\": 5,\n        \"proficient\": true\n    }\n}"
+            },
+            {
+              "name": "Skill not found",
+              "originalRequest": {},
+              "status": "Not Found",
+              "code": 404,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": false,\n    \"error\": \"Skill not found.\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Saving Throw Proficiency",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/updateSavingThrowProficiency",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "updateSavingThrowProficiency"
+              ],
+              "query": []
+            },
+            "description": "Toggles a saving throw's proficiency for the calling user's character and recomputes its modifier server-side.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"campaignId\": 7,\n    \"savingThrowId\": \"str\",\n    \"proficient\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Saving throw updated",
+              "originalRequest": {},
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": true,\n    \"savingThrow\": {\n        \"id\": \"str\",\n        \"name\": \"Strength\",\n        \"modifier\": 5,\n        \"proficient\": true\n    }\n}"
+            },
+            {
+              "name": "Saving throw not found",
+              "originalRequest": {},
+              "status": "Not Found",
+              "code": 404,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": false,\n    \"error\": \"Saving Throw not found.\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Shop Checkout",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/player/checkout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "player",
+                "checkout"
+              ],
+              "query": []
+            },
+            "description": "Validates the cart against the DB-stored shop inventory (never trusts client-sent prices), deducts currency, and adds items to equipment.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"campaignId\": 7,\n    \"cart\": [\n        {\n            \"item\": {\n                \"id\": \"longsword\"\n            },\n            \"quantity\": 1\n        }\n    ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Checkout complete",
+              "originalRequest": {},
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": true,\n    \"message\": \"Checkout complete.\"\n}"
+            },
+            {
+              "name": "Not enough gold",
+              "originalRequest": {},
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": false,\n    \"error\": \"Not enough gold!\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Shop",
+      "description": "DM-managed shop inventory and open/closed status.",
+      "item": [
+        {
+          "name": "Get Shop Inventory (DM)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/DM/getShopInventory?campaignID=7",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "DM",
+                "getShopInventory"
+              ],
+              "query": [
+                {
+                  "key": "campaignID",
+                  "value": "7"
+                }
+              ]
+            },
+            "description": "DM view of the full shop document for a campaign, including all items."
+          },
+          "response": [
+            {
+              "name": "Shop inventory",
+              "originalRequest": {},
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": true,\n    \"shop\": {\n        \"campaignId\": 7,\n        \"isOpen\": false,\n        \"items\": [\n            {\n                \"id\": \"longsword\",\n                \"name\": \"Longsword\",\n                \"cost\": \"15 gp\"\n            }\n        ]\n    }\n}"
+            },
+            {
+              "name": "Missing campaign id",
+              "originalRequest": {},
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": false,\n    \"error\": \"Campaign ID is required.\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Shop Inventory (DM)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/DM/updateShopInventory",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "DM",
+                "updateShopInventory"
+              ],
+              "query": []
+            },
+            "description": "DM-only. Replaces the full shop item list for a campaign (upserts the Shop document).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"campaignID\": 7,\n    \"items\": [\n        {\n            \"id\": \"longsword\",\n            \"name\": \"Longsword\",\n            \"cost\": \"15 gp\"\n        }\n    ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Shop updated",
+              "originalRequest": {},
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": true,\n    \"message\": \"Shop updated successfully!\"\n}"
+            },
+            {
+              "name": "Invalid data",
+              "originalRequest": {},
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": false,\n    \"error\": \"Invalid data provided.\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Shop Inventory (Player)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/getShopInventory?campaignID=7",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "getShopInventory"
+              ],
+              "query": [
+                {
+                  "key": "campaignID",
+                  "value": "7"
+                }
+              ]
+            },
+            "description": "Player-facing view of the shop's item list (same data source as the DM view)."
+          },
+          "response": [
+            {
+              "name": "Shop inventory",
+              "originalRequest": {},
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": true,\n    \"shop\": {\n        \"campaignId\": 7,\n        \"isOpen\": true,\n        \"items\": [\n            {\n                \"id\": \"longsword\",\n                \"name\": \"Longsword\",\n                \"cost\": \"15 gp\"\n            }\n        ]\n    }\n}"
+            },
+            {
+              "name": "Missing campaign id",
+              "originalRequest": {},
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": false,\n    \"error\": \"Campaign ID is required.\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Shop Open/Closed Status",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/getShopStatus?campaignId=7",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "getShopStatus"
+              ],
+              "query": [
+                {
+                  "key": "campaignId",
+                  "value": "7"
+                }
+              ]
+            },
+            "description": "Returns just the boolean open/closed flag (used on page load before the live socket update arrives)."
+          },
+          "response": [
+            {
+              "name": "Shop status",
+              "originalRequest": {},
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": true,\n    \"isOpen\": true\n}"
+            },
+            {
+              "name": "Missing campaign id",
+              "originalRequest": {},
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": false,\n    \"error\": \"campaignId is required\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "DM Assets & Monsters",
+      "description": "Asset (token/map/audio) upload to S3 + MySQL metadata, and saved-monster bestiary.",
+      "item": [
+        {
+          "name": "Upload Asset",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/DM/uploadAsset",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "DM",
+                "uploadAsset"
+              ],
+              "query": []
+            },
+            "description": "Uploads an image/audio file to S3 and records its metadata in MySQL. Tokens are auto-cropped to a circle; maps are resized to fit 3000x3000.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "media",
+                  "type": "file",
+                  "src": ""
+                },
+                {
+                  "key": "campaignID",
+                  "value": "7",
+                  "type": "text"
+                },
+                {
+                  "key": "assetType",
+                  "value": "token",
+                  "type": "text",
+                  "description": "'token' | 'map' | 'audio'"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Asset uploaded",
+              "originalRequest": {},
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": true,\n    \"message\": \"Asset uploaded and saved to database!\",\n    \"assetId\": 12,\n    \"imageName\": \"a1b2c3d4...\"\n}"
+            },
+            {
+              "name": "No file uploaded",
+              "originalRequest": {},
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": false,\n    \"error\": \"No file uploaded.\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Assets",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/DM/getAsset?campaignID=7",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "DM",
+                "getAsset"
+              ],
+              "query": [
+                {
+                  "key": "campaignID",
+                  "value": "7"
+                }
+              ]
+            },
+            "description": "Lists every asset uploaded for a campaign with a freshly-signed temporary S3 URL (4h expiry) per asset."
+          },
+          "response": [
+            {
+              "name": "Assets list",
+              "originalRequest": {},
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": true,\n    \"assets\": [\n        {\n            \"id\": 12,\n            \"campaign_id\": 7,\n            \"uploader_id\": 1,\n            \"s3_key\": \"a1b2c3d4...\",\n            \"original_name\": \"goblin.png\",\n            \"asset_type\": \"token\",\n            \"imageUrl\": \"https://s3.amazonaws.com/...\"\n        }\n    ]\n}"
+            },
+            {
+              "name": "Missing campaign id",
+              "originalRequest": {},
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": false,\n    \"error\": \"Campaign ID is required.\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Delete Asset",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/DM/deleteAsset?imageID=12",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "DM",
+                "deleteAsset"
+              ],
+              "query": [
+                {
+                  "key": "imageID",
+                  "value": "12"
+                }
+              ]
+            },
+            "description": "DM-only (verified server-side against the asset's own campaign). Deletes the S3 object and its MySQL row."
+          },
+          "response": [
+            {
+              "name": "Asset deleted",
+              "originalRequest": {},
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": true,\n    \"message\": \"Asset deleted successfully\",\n    \"deletedId\": \"12\"\n}"
+            },
+            {
+              "name": "Not the DM of this campaign",
+              "originalRequest": {},
+              "status": "Forbidden",
+              "code": 403,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": false,\n    \"error\": \"Only the DM of this campaign can delete this asset.\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Save Monster",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/DM/saveMonster",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "DM",
+                "saveMonster"
+              ],
+              "query": []
+            },
+            "description": "Persists a monster (fetched from the D&D 5e API client-side) into the campaign's saved bestiary.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"campaignID\": 7,\n    \"monsterData\": {\n        \"index\": \"goblin\",\n        \"name\": \"Goblin\",\n        \"hit_points\": 7,\n        \"armor_class\": [\n            {\n                \"value\": 13\n            }\n        ]\n    }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Monster saved",
+              "originalRequest": {},
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": true,\n    \"message\": \"Monster saved successfully!\",\n    \"insertId\": 3\n}"
+            },
+            {
+              "name": "Missing data",
+              "originalRequest": {},
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": false,\n    \"error\": \"Missing campaign ID or monster data.\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Saved Monsters",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/DM/getSavedMonsters?campaignID=7",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "DM",
+                "getSavedMonsters"
+              ],
+              "query": [
+                {
+                  "key": "campaignID",
+                  "value": "7"
+                }
+              ]
+            },
+            "description": "Lists every monster the DM has saved for this campaign, newest first."
+          },
+          "response": [
+            {
+              "name": "Saved monsters",
+              "originalRequest": {},
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": true,\n    \"monsters\": [\n        {\n            \"id\": 3,\n            \"campaign_id\": 7,\n            \"monster_data\": \"{\\\"index\\\":\\\"goblin\\\",\\\"name\\\":\\\"Goblin\\\"}\"\n        }\n    ]\n}"
+            },
+            {
+              "name": "Missing campaign id",
+              "originalRequest": {},
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": false,\n    \"error\": \"Campaign ID is required.\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Live Session State",
+      "description": "REST GETs used to hydrate a screen on load/refresh; live updates afterwards arrive over Socket.io (not represented in this HTTP collection).",
+      "item": [
+        {
+          "name": "Get Chat History",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/chatHistory?campaignId=7&isDM=false",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "chatHistory"
+              ],
+              "query": [
+                {
+                  "key": "campaignId",
+                  "value": "7"
+                },
+                {
+                  "key": "isDM",
+                  "value": "false"
+                }
+              ]
+            },
+            "description": "Returns the last 50 chat messages visible to the caller (broadcasts + whispers they sent/received; the DM sees everything)."
+          },
+          "response": [
+            {
+              "name": "Chat history",
+              "originalRequest": {},
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": true,\n    \"messages\": [\n        {\n            \"_id\": \"abc123\",\n            \"campaignId\": 7,\n            \"senderId\": 1,\n            \"senderName\": \"Aldric\",\n            \"type\": \"chat\",\n            \"text\": \"Hello!\",\n            \"targetId\": null,\n            \"meta\": {},\n            \"createdAt\": \"2026-06-29T12:00:00.000Z\"\n        }\n    ]\n}"
+            },
+            {
+              "name": "Missing params",
+              "originalRequest": {},
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": false,\n    \"error\": \"campaignId and userId are required\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Active Effects",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/getEffects?campaignId=7",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "getEffects"
+              ],
+              "query": [
+                {
+                  "key": "campaignId",
+                  "value": "7"
+                }
+              ]
+            },
+            "description": "Returns every currently-active effect (e.g. spell durations) for the campaign."
+          },
+          "response": [
+            {
+              "name": "Active effects",
+              "originalRequest": {},
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": true,\n    \"effects\": [\n        {\n            \"_id\": \"eff1\",\n            \"campaignId\": 7,\n            \"name\": \"Spirit Guardians\",\n            \"roundsRemaining\": 5\n        }\n    ]\n}"
+            },
+            {
+              "name": "Missing campaign id",
+              "originalRequest": {},
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": false,\n    \"error\": \"campaignId is required\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Map State",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/getMapState?campaignId=7",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "getMapState"
+              ],
+              "query": [
+                {
+                  "key": "campaignId",
+                  "value": "7"
+                }
+              ]
+            },
+            "description": "Returns the persisted background image and token positions for the campaign's battle map."
+          },
+          "response": [
+            {
+              "name": "Map state",
+              "originalRequest": {},
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": true,\n    \"backgroundUrl\": \"https://s3.amazonaws.com/.../map.png\",\n    \"tokens\": [\n        {\n            \"id\": \"goblin-1\",\n            \"gridX\": 4,\n            \"gridY\": 3,\n            \"color\": \"#cc3333\",\n            \"radius\": 18\n        }\n    ]\n}"
+            },
+            {
+              "name": "Missing campaign id",
+              "originalRequest": {},
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n    \"success\": false,\n    \"error\": \"campaignId is required\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Misc",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                ""
+              ],
+              "query": []
+            },
+            "description": "Plain-text liveness check."
+          },
+          "response": [
+            {
+              "name": "Server is up",
+              "originalRequest": {},
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "text/html; charset=utf-8"
+                }
+              ],
+              "body": "This is localhost:8080"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
