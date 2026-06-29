@@ -78,11 +78,11 @@ async function signUp(req, res, connection) {
         const [result] = await connection.promise().query(
             'SELECT id FROM users_info WHERE email = ?', [email]
         )
-        if (results.length === 0) {
+        if (result.length === 0) {
             return res.status(500).json({ success: false, error: 'Error retreiving new account' })
         }
 
-        const user = results[0]
+        const user = result[0]
 
         helper.reduceTokens(connection, user.id)
 

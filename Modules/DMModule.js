@@ -9,8 +9,8 @@ async function uploadAssets(req, res, connection, client) {
         return res.status(400).json({ success: false, error: "No file uploaded." })
     }
 
-    if (!req.file.mimetype.startsWith('image/')) {
-        return res.status(400).json({ success: false, error: "Invalid file type. Please upload an image." });
+    if (!req.file.mimetype.startsWith('image/') && !req.file.mimetype.startsWith('audio/')) {
+        return res.status(400).json({ success: false, error: "Invalid file type. Please upload an image or audio." });
     }
 
     const campaignId = req.body.campaignID
@@ -22,38 +22,47 @@ async function uploadAssets(req, res, connection, client) {
     }
 
     let buffer
-
-    if (assetType === 'token') {
-        const size = 256
-        const circleSvg = Buffer.from(
-            `<svg width="${size}" height="${size}">
-                <circle cx="${size / 2}" cy="${size / 2}" r="${size / 2}" />
-            </svg>`
-        )
-
-        buffer = await sharp(req.file.buffer)
-            .resize(size,size, {fit: 'cover'})
-            .composite([{input: circleSvg, blend: 'dest-in'}])
-            .png()
-            .toBuffer()
-    }
-    else if (assetType === 'map') {
-        buffer = await sharp(req.file.buffer)
-            .resize({ height: 3000, width: 3000, fit: "inside" }) // might need to chage the values
-            .toBuffer()
-    }
-    
     const finalMimeType = assetType === 'token' ? 'image/png' : req.file.mimetype;
     const imageName = helper.randomImageName()
 
-    const params = {
-        Bucket: process.env.BUCKET_NAME,
-        Key: imageName,
-        Body: buffer,
-        ContentType: finalMimeType
-    }
-
     try {
+        if (req.file.mimetype.startsWith('image/')) {
+
+            if (assetType === 'token') {
+                const size = 256
+                const circleSvg = Buffer.from(
+                    `<svg width="${size}" height="${size}">
+                    <circle cx="${size / 2}" cy="${size / 2}" r="${size / 2}" />
+                    </svg>`
+                )
+
+                buffer = await sharp(req.file.buffer)
+                    .resize(size, size, { fit: 'cover' })
+                    .composite([{ input: circleSvg, blend: 'dest-in' }])
+                    .png()
+                    .toBuffer()
+            }
+            else if (assetType === 'map') {
+                buffer = await sharp(req.file.buffer)
+                    .resize({ height: 3000, width: 3000, fit: "inside" }) // might need to chage the values
+                    .toBuffer()
+            }
+        }
+        else if (req.file.mimetype.startsWith('audio/')) {
+            buffer = req.file.buffer
+            if (buffer.length > 10 * 1024 * 1024) throw new Error("Audio too large!")
+        }
+        else {
+            return res.status(400).json({ success: false, error: "Unsupported file type. Please upload an image or audio file." })
+        }
+
+        const params = {
+            Bucket: process.env.BUCKET_NAME,
+            Key: imageName,
+            Body: buffer,
+            ContentType: finalMimeType
+        }
+
         const command = new PutObjectCommand(params)
         await client.send(command)
 

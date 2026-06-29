@@ -190,7 +190,7 @@ async function joinNewCampaign(req, res, connection) {
         stats, modifiers, proficiencyBonus, combat, health, savingThrows,
         currency, equipment, skills, languages, tools
     } = req.body;
-    const userId = req.user.Id
+    const userId = req.user.userId
 
     try {
         // 1. Verify the Join Code in MySQL and get the Campaign ID

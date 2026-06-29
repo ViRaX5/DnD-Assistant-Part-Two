@@ -282,19 +282,61 @@ io.on('connection', (socket) => {
 
     socket.on('chat:send', (payload) => {
         chatModule.handleMessageSend(io, socket, socketContext, payload)
-    });
+    })
 
     socket.on('effects:add', (payload) => {
         effectsModule.handleEffectAdd(io, socket, socketContext, payload)
-    });
+    })
 
     socket.on('shop:toggle', (payload) => {
         shopModule.handleShopToggle(io, socket, socketContext, payload)
-    });
+    })
 
     socket.on('disconnect', () => {
         socketContext.delete(socket.id)
-    });
+    })
+
+    socket.on('audio:play', (data) => {
+        const context = socketContext.get(socket.id)
+        if (context) {
+            socket.to(`campaign:${context.campaignId}`).emit('audio:syncPlay', data)
+        }
+    })
+
+    socket.on('audio:pause', () => {
+        const context = socketContext.get(socket.id)
+        if (context) {
+            socket.to(`campaign:${context.campaignId}`).emit('audio:syncPause')
+        }
+    })
+
+    socket.on('audio:resume', () => {
+        const context = socketContext.get(socket.id)
+        if (context) {
+            socket.to(`campaign:${context.campaignId}`).emit('audio:syncResume')
+        }
+    })
+
+    socket.on('audio:stop', () => {
+        const context = socketContext.get(socket.id)
+        if (context) {
+            socket.to(`campaign:${context.campaignId}`).emit('audio:syncStop')
+        }
+    })
+
+    socket.on('audio:seek', (data) => {
+        const context = socketContext.get(socket.id)
+        if (context) {
+            socket.to(`campaign:${context.campaignId}`).emit('audio:syncSeek', data)
+        }
+    })
+
+    socket.on('audio:setPlayerVolume', (data) => {
+        const context = socketContext.get(socket.id);
+        if (context) {
+            socket.to(`campaign:${context.campaignId}`).emit('audio:syncTargetVolume', data);
+        }
+    })
 })
 
 
