@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const effectSchema = new mongoose.Schema({
     campaignId: { type: Number, required: true },
     name: { type: String, required: true },
-    duration: { type: String, required: true },
+    roundsRemaining: { type: Number, required: true },
     createdAt: { type: Date, default: Date.now }
 })
 
@@ -13,13 +13,13 @@ async function handleEffectAdd(io, socket, socketContext, payload) {
     const ctx = socketContext.get(socket.id)
     if (!ctx) return
 
-    const { name, duration } = payload
+    const { name, roundsRemaining } = payload
 
     try {
         const effect = new Effect({
             campaignId: ctx.campaignId,
             name: name,
-            duration: duration
+            roundsRemaining: roundsRemaining
         })
 
         await effect.save()
@@ -28,7 +28,7 @@ async function handleEffectAdd(io, socket, socketContext, payload) {
             _id: effect._id,
             campaignId: effect.campaignId,
             name: effect.name,
-            duration: effect.duration
+            roundsRemaining: effect.roundsRemaining
         }
 
         io.to(`campaign:${ctx.campaignId}`).emit('effects:new', wireEffect)
@@ -56,4 +56,21 @@ async function getActiveEffects(req, res) {
     }
 }
 
-module.exports = { Effect, handleEffectAdd, getActiveEffects }
+async function handleDecrementRound(io, socket, socketContext) {
+    const ctx = socketContext.get(socket.id)
+    if (!ctx || !ctx.isDM) return
+
+    try {
+        await Effect.updateMany({ campaignId: ctx.campaignId }, { $inc: { roundsRemaining: -1 } })
+        await Effect.deleteMany({ campaignId: ctx.campaignId, roundsRemaining: { $lte: 0 } })
+
+        const effects = await Effect.find({ campaignId: ctx.campaignId })
+
+        io.to(`campaign:${ctx.campaignId}`).emit('effects:sync', effects)
+    }
+    catch (err) {
+        console.error("Database error during effect decrement: ", err)
+    }
+}
+
+module.exports = { Effect, handleEffectAdd, getActiveEffects, handleDecrementRound }

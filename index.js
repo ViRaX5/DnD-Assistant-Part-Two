@@ -19,6 +19,8 @@ const chatModule = require('./Modules/chatModule');
 const effectsModule = require('./Modules/effectsModule');
 const shopModule = require('./Modules/shopModule');
 const mapModule = require('./Modules/mapModule');
+const initiativeModule = require('./Modules/initiativeModule');
+const combatModule = require('./Modules/combatModule');
 const cookieParser = require('cookie-parser');
 // const { MongoClient, ServerApiVersion } = require('mongodb');
 // const uri = `mongodb+srv://amit505r_db_user:${process.env.MONGODB_PASSWORD}@cluster0.6a6vfcx.mongodb.net/?appName=Cluster0`;
@@ -287,6 +289,36 @@ io.on('connection', (socket) => {
     socket.on('session:join', ({ campaignId, userId, isDM }) => {
         socketContext.set(socket.id, { userId, campaignId, isDM })
         socket.join(`campaign:${campaignId}`)
+
+        if (!isDM) {
+            initiativeModule.checkReconnectingRoller(socket, campaignId, userId)
+        }
+
+        combatModule.checkReconnectingCombatState(socket, campaignId)
+    })
+
+    socket.on('combat:turnChanged', (payload) => {
+        combatModule.handleTurnChanged(io, socket, socketContext, payload)
+    })
+
+    socket.on('rest:request', (payload) => {
+        combatModule.handleRestRequest(io, socket, socketContext, payload)
+    })
+
+    socket.on('rest:respond', (payload) => {
+        combatModule.handleRestRespond(io, socket, socketContext, payload)
+    })
+
+    socket.on('initiative:start', () => {
+        initiativeModule.handleInitiativeStart(io, socket, socketContext, pool)
+    })
+
+    socket.on('initiative:submitRoll', (payload) => {
+        initiativeModule.handleInitiativeSubmitRoll(io, socket, socketContext, payload)
+    })
+
+    socket.on('initiative:end', () => {
+        initiativeModule.handleInitiativeEnd(io, socket, socketContext)
     })
 
     socket.on('map:moveToken', (data) => {
@@ -319,6 +351,10 @@ io.on('connection', (socket) => {
 
     socket.on('effects:add', (payload) => {
         effectsModule.handleEffectAdd(io, socket, socketContext, payload)
+    })
+
+    socket.on('effects:decrementRound', () => {
+        effectsModule.handleDecrementRound(io, socket, socketContext)
     })
 
     socket.on('shop:toggle', (payload) => {
