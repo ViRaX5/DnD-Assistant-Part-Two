@@ -23,6 +23,7 @@ const mapModule = require('./Modules/mapModule');
 const initiativeModule = require('./Modules/initiativeModule');
 const combatModule = require('./Modules/combatModule');
 const cookieParser = require('cookie-parser');
+const jwt = require('jsonwebtoken');
 // const { MongoClient, ServerApiVersion } = require('mongodb');
 // const uri = `mongodb+srv://amit505r_db_user:${process.env.MONGODB_PASSWORD}@cluster0.6a6vfcx.mongodb.net/?appName=Cluster0`;
 
@@ -172,7 +173,7 @@ app.get('/api/campaignListCampaignAndDM', helper.authenticateToken, (req, res) =
     campaignListModule.getSessionPlayersExceptDM(req, res, pool)
 })
 
-app.delete('/api/campaignListNewDM', helper.authenticateToken, (req, res) => {
+app.delete('/api/campaignListNewDM', helper.authenticateToken, helper.checkCampaignAccess(pool), (req, res) => {
     campaignListModule.setUpNewDM(req, res, pool)
 })
 
@@ -180,7 +181,7 @@ app.delete('/api/campaignListPlayerLeave', helper.authenticateToken, (req, res) 
     campaignListModule.leaveSession(req, res, pool)
 })
 
-app.delete('/api/deleteEntireCampaign', helper.authenticateToken, (req, res) => {
+app.delete('/api/deleteEntireCampaign', helper.authenticateToken, helper.checkCampaignAccess(pool), (req, res) => {
     campaignListModule.deleteEntireCampaign(req, res, pool)
 })
 
@@ -303,15 +304,41 @@ const socketContext = new Map()
 io.on('connection', (socket) => {
     console.log('Backend Connection', socket.id)
 
-    socket.on('session:join', ({ campaignId, userId, isDM }) => {
-        socketContext.set(socket.id, { userId, campaignId, isDM })
-        socket.join(`campaign:${campaignId}`)
+    socket.on('session:join', async ({ campaignId, accessToken }) => {
+        if (!campaignId || !accessToken) return
 
-        if (!isDM) {
-            initiativeModule.checkReconnectingRoller(socket, campaignId, userId)
+        let decoded
+        try {
+            decoded = jwt.verify(accessToken, process.env.JWT_SECRET)
+        }
+        catch (err) {
+            return
         }
 
-        combatModule.checkReconnectingCombatState(socket, campaignId)
+        const userId = decoded.userId
+
+        try {
+            const [participants] = await pool.promise().query(
+                'SELECT users_role FROM capmaign_participants WHERE user_id = ? AND campaign_id = ?',
+                [userId, campaignId]
+            )
+
+            if (participants.length === 0) return
+
+            const isDM = participants[0].users_role === 'DM'
+
+            socketContext.set(socket.id, { userId, campaignId, isDM })
+            socket.join(`campaign:${campaignId}`)
+
+            if (!isDM) {
+                initiativeModule.checkReconnectingRoller(socket, campaignId, userId)
+            }
+
+            combatModule.checkReconnectingCombatState(socket, campaignId)
+        }
+        catch (err) {
+            console.error("session:join authorization check failed:", err)
+        }
     })
 
     socket.on('combat:turnChanged', (payload) => {

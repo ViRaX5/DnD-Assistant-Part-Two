@@ -71,8 +71,11 @@ async function persistTokenMove(campaignId, tokenId, newX, newY) {
         )
 
         if (!updated) {
+            // Guard the fallback push against a concurrent move on the same
+            // token also racing here — only push if no token with this id
+            // exists yet, so at most one of two racing pushes can match.
             await MapState.findOneAndUpdate(
-                { campaignId },
+                { campaignId, "tokens.id": { $ne: tokenId } },
                 { $push: { tokens: { id: tokenId, gridX: newX, gridY: newY } } },
                 { upsert: true }
             )

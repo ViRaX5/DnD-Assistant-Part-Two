@@ -131,11 +131,20 @@ async function deleteAssets(req, res, connection, client) {
         const [rows] = await connection.promise().query(`
             SELECT * FROM campaign_assets WHERE id = ?`, [imageId])
 
-        if (!rows.length === 0) {
+        if (rows.length === 0) {
             res.status(404).send("Asset not found")
             return
         }
         const asset = rows[0]
+
+        const [participants] = await connection.promise().query(
+            'SELECT users_role FROM capmaign_participants WHERE user_id = ? AND campaign_id = ?',
+            [req.user.userId, asset.campaign_id]
+        )
+
+        if (participants.length === 0 || participants[0].users_role !== 'DM') {
+            return res.status(403).json({ success: false, error: "Only the DM of this campaign can delete this asset." })
+        }
 
         const params = {
             Bucket: process.env.BUCKET_NAME,

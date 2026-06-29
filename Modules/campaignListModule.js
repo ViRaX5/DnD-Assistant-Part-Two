@@ -414,7 +414,11 @@ async function setUpNewDM(req, res, connection) {
     const leavingUserID = req.user.userId
     // const newDMid = req.newDMid
     // const leavingUserID = req.leavingUserID
-    // const campaignID = req.campaignID 
+    // const campaignID = req.campaignID
+
+    if (req.user.campaignRole !== 'DM') {
+        return res.status(403).json({ success: false, error: "Only the current DM can transfer the DM role." })
+    }
 
     // note to self, might want to delete the information of the character in mongo, will have to check
     try {
@@ -436,6 +440,10 @@ async function setUpNewDM(req, res, connection) {
 
 async function deleteEntireCampaign(req, res, connection) {
     const campaignID = req.query.campaignID
+
+    if (req.user.campaignRole !== 'DM') {
+        return res.status(403).json({ success: false, error: "Only the DM can delete this campaign." })
+    }
 
     try {
         // 1. Delete all participants from MySQL (the DM)

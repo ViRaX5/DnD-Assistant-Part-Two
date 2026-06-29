@@ -1,8 +1,28 @@
 const mongoose = require('mongoose');
 
+// Mirrors the frontend's parseCostToCP (ui-interactions.js) so prices are
+// computed from the same "X gp/sp/cp/ep/pp" strings stored in Shop.items.
+function parseCostToCP(costString) {
+    if (!costString) return 0;
+    const match = costString.toLowerCase().match(/(\d+(?:\.\d+)?)\s*(cp|sp|ep|gp|pp)/);
+    if (!match) return 0;
+
+    const amount = parseFloat(match[1]);
+    const unit = match[2];
+
+    switch (unit) {
+        case 'cp': return amount;
+        case 'sp': return amount * 10;
+        case 'ep': return amount * 50;
+        case 'gp': return amount * 100;
+        case 'pp': return amount * 1000;
+        default: return 0;
+    }
+}
+
 async function processCheckout(req, res) {
     const userId = req.user.userId;
-    const { campaignId, cart, totalCostCP } = req.body;
+    const { campaignId, cart } = req.body;
 
     if (!campaignId || !cart || cart.length === 0) {
         return res.status(400).json({ success: false, error: "Invalid cart data." });
@@ -11,9 +31,10 @@ async function processCheckout(req, res) {
     try {
         // Grab the Character model that was already registered in campaignListModule.js
         const Character = mongoose.models.Character;
+        const Shop = mongoose.models.Shop;
 
-        if (!Character) {
-            return res.status(500).json({ success: false, error: "Character model not initialized." });
+        if (!Character || !Shop) {
+            return res.status(500).json({ success: false, error: "Required model not initialized." });
         }
 
         // 1. Fetch the player's specific character document
@@ -21,6 +42,29 @@ async function processCheckout(req, res) {
 
         if (!character) {
             return res.status(404).json({ success: false, error: "Character not found." });
+        }
+
+        // 1b. Re-price every cart line against the DB-stored shop inventory
+        // instead of trusting any client-supplied cost — never trust a
+        // client-computed total.
+        const shop = await Shop.findOne({ campaignId: campaignId });
+        if (!shop || !shop.isOpen) {
+            return res.status(400).json({ success: false, error: "The shop is not open." });
+        }
+
+        const purchasedItems = [];
+        let totalCostCP = 0;
+
+        for (const cartItem of cart) {
+            const quantity = Math.floor(Number(cartItem?.quantity));
+            const shopItem = shop.items.find(i => i.id === cartItem?.item?.id);
+
+            if (!shopItem || !Number.isInteger(quantity) || quantity <= 0) {
+                return res.status(400).json({ success: false, error: "Invalid item in cart." });
+            }
+
+            totalCostCP += parseCostToCP(shopItem.cost) * quantity;
+            purchasedItems.push({ name: shopItem.name, quantity });
         }
 
         // 2. Calculate current player wealth in CP based on your schema names
@@ -43,11 +87,11 @@ async function processCheckout(req, res) {
         character.currency.copper = remainingCP % 10;
 
         // 5. Add items to equipment array (Schema requires Strings)
-        cart.forEach(cartItem => {
-            if (cartItem.quantity > 1) {
-                character.equipment.push(`${cartItem.item.name} (x${cartItem.quantity})`);
+        purchasedItems.forEach(purchased => {
+            if (purchased.quantity > 1) {
+                character.equipment.push(`${purchased.name} (x${purchased.quantity})`);
             } else {
-                character.equipment.push(cartItem.item.name);
+                character.equipment.push(purchased.name);
             }
         });
 
