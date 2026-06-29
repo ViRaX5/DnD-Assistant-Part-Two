@@ -239,6 +239,14 @@ app.delete("/api/DM/deleteAsset", helper.authenticateToken, async (req, res) => 
     DMModule.deleteAssets(req, res, pool, client)
 })
 
+app.post('/api/DM/saveMonster', helper.authenticateToken, helper.checkCampaignAccess(pool), (req, res) => {
+    DMModule.saveMonster(req, res, pool)
+})
+
+app.get('/api/DM/getSavedMonsters', helper.authenticateToken, helper.checkCampaignAccess(pool), (req, res) => {
+    DMModule.getSavedMonsters(req, res, pool)
+})
+
 app.get('/api/chatHistory', helper.authenticateToken, helper.checkCampaignAccess(pool), (req, res) => {
     chatModule.getChatHistory(req, res)
 })

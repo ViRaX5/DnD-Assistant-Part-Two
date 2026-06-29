@@ -156,8 +156,60 @@ async function deleteAssets(req, res, connection, client) {
     }
 }
 
+async function saveMonster(req, res, connection) {
+    const { campaignID, monsterData } = req.body;
+
+    if (!campaignID || !monsterData) {
+        return res.status(400).json({ success: false, error: "Missing campaign ID or monster data." });
+    }
+
+    try {
+        // Stringify the JSON object from the 5e API so MySQL can store it safely
+        const monsterDataStr = JSON.stringify(monsterData);
+
+        const [dbResult] = await connection.promise().query(`
+            INSERT INTO campaign_monsters (campaign_id, monster_data) 
+            VALUES (?, ?)`, 
+            [campaignID, monsterDataStr]
+        );
+
+        return res.json({ 
+            success: true, 
+            message: "Monster saved successfully!", 
+            insertId: dbResult.insertId 
+        });
+    } catch (err) {
+        console.error("Failed to save monster:", err);
+        return res.status(500).json({ success: false, error: "Database error while saving monster." });
+    }
+}
+
+async function getSavedMonsters(req, res, connection) {
+    const campaignId = req.query.campaignID;
+
+    if (!campaignId) {
+        return res.status(400).json({ success: false, error: "Campaign ID is required." });
+    }
+
+    try {
+        const [monsters] = await connection.promise().query(`
+            SELECT * FROM campaign_monsters 
+            WHERE campaign_id = ? 
+            ORDER BY id DESC`, // Shows newest additions first
+            [campaignId]
+        );
+
+        return res.json({ success: true, monsters: monsters });
+    } catch (err) {
+        console.error("Failed to fetch saved monsters:", err);
+        return res.status(500).json({ success: false, error: "Database error fetching monsters." });
+    }
+}
+
 module.exports = {
     uploadAssets,
     getAssets,
-    deleteAssets
+    deleteAssets,
+    saveMonster,
+    getSavedMonsters
 }
