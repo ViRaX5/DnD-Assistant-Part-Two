@@ -4,6 +4,7 @@ const app = express();
 const cors = require('cors');
 const loginSignupModule = require('./Modules/loginModule');
 const campaignListModule = require('./Modules/campaignListModule');
+const playerModule = require('./Modules/playerModule');
 // const argon2 = require('argon2'); probably dont need here
 const mysql = require('mysql2');
 const fs = require('fs');
@@ -248,6 +249,22 @@ app.post('/api/DM/saveMonster', helper.authenticateToken, helper.checkCampaignAc
 app.get('/api/DM/getSavedMonsters', helper.authenticateToken, helper.checkCampaignAccess(pool), (req, res) => {
     DMModule.getSavedMonsters(req, res, pool)
 })
+
+app.get('/api/DM/getShopInventory', helper.authenticateToken, helper.checkCampaignAccess(pool), (req, res) => {
+    shopModule.getShopInventory(req, res);
+})
+
+app.post('/api/DM/updateShopInventory', helper.authenticateToken, helper.checkCampaignAccess(pool), (req, res) => {
+    shopModule.updateShopInventory(req, res);
+})
+
+app.get('/api/getShopInventory', helper.authenticateToken, helper.checkCampaignAccess(pool), (req, res) => {
+    shopModule.getShopInventory(req, res);
+})
+
+app.post('/api/player/checkout', helper.authenticateToken, helper.checkCampaignAccess(pool), (req, res) => {
+    playerModule.processCheckout(req, res); 
+});
 
 app.get('/api/chatHistory', helper.authenticateToken, helper.checkCampaignAccess(pool), (req, res) => {
     chatModule.getChatHistory(req, res)
