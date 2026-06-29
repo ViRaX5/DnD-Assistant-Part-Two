@@ -75,21 +75,31 @@ run().catch(console.dir);
 
 // cors
 
-const allowedOrigin = process.env.NODE_ENV === 'production' ? 'https://virax5.github.io' : 'http://127.0.0.1:5500'
+const allowedOrigin = process.env.NODE_ENV === 'production' ? ['https://virax5.github.io'] : ['http://127.0.0.1:5500', 'http://localhost:5500']
 
+// app.use((req, res, next) => {
+//     res.set({
+//         'Access-Control-Allow-Origin': allowedOrigin,
+//         'Access-Control-Allow-Credentials': 'true',
+//         'Access-Control-Allow-Headers': 'Origin, X-Requested-With, Content-Type, Accept, Authorization',
+//         'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+//         // 'Content-Type': 'application/json'
+//     })
+
+    // if (req.method === 'OPTIONS') {
+    //     return res.sendStatus(200)
+    // }
+   
+// })
+
+app.use(cors({
+    origin: allowedOrigin,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization']
+}))
 app.use((req, res, next) => {
-    res.set({
-        'Access-Control-Allow-Origin': allowedOrigin,
-        'Access-Control-Allow-Credentials': 'true',
-        'Access-Control-Allow-Headers': 'Origin, X-Requested-With, Content-Type, Accept, Authorization',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
-        // 'Content-Type': 'application/json'
-    })
-
-    if (req.method === 'OPTIONS') {
-        return res.sendStatus(200)
-    }
-    if (!res.get('Content-Type')) {
+     if (!res.get('Content-Type')) {
         res.set('Content-Type', 'application/json')
     }
     next()

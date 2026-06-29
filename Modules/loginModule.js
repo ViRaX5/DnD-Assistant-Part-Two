@@ -98,7 +98,7 @@ async function signUp(req, res, connection) {
         res.cookie('refreshToken', refreshToken, {
             httpOnly: true, // Hides it from hackers' JavaScript
             secure: process.env.NODE_ENV === 'production', // Requires HTTPS in production
-            sameSite: 'None',
+            sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',
             maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days in milliseconds
         })
 
@@ -155,7 +155,7 @@ async function logIn(req, res, connection) {
         res.cookie('refreshToken', refreshToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: 'None',
+            sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',
             maxAge: 7 * 24 * 60 * 60 * 1000
         })
 
