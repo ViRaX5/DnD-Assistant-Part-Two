@@ -173,7 +173,23 @@ async function saveMonster(req, res, connection) {
     }
 
     try {
-        // Stringify the JSON object from the 5e API so MySQL can store it safely
+        const monsterIndex = monsterData.index;
+
+        const [existing] = await connection.promise().query(`
+            SELECT id FROM campaign_monsters 
+            WHERE campaign_id = ? 
+            AND JSON_UNQUOTE(JSON_EXTRACT(monster_data, '$.index')) = ?`,
+            [campaignID, monsterIndex]
+        );
+
+        if (existing.length > 0) {
+            return res.json({ 
+                success: true, 
+                message: "Monster is already saved to this campaign.",
+                insertId: existing[0].id
+            });
+        }
+
         const monsterDataStr = JSON.stringify(monsterData);
 
         const [dbResult] = await connection.promise().query(`
