@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require('mongoose')
 
 const mapStateSchema = new mongoose.Schema({
     campaignId: { type: Number, required: true, unique: true },

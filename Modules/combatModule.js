@@ -1,5 +1,5 @@
 // campaignId -> { combatActive, currentTurnUserId }
-const combatStateByCampaign = new Map();
+const combatStateByCampaign = new Map()
 
 function handleTurnChanged(io, socket, socketContext, payload) {
     const ctx = socketContext.get(socket.id)

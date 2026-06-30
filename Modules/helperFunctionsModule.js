@@ -1,37 +1,37 @@
-const crypto = require('crypto');
-const { access } = require('fs');
-const jwt = require('jsonwebtoken');
+const crypto = require('crypto')
+const { access } = require('fs')
+const jwt = require('jsonwebtoken')
 
 function capitalizeComplexName(name) {
-    if (!name) return name;
+    if (!name) return name
     return name.toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase())
 }
 
 function generateRandomString(length) {
-    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let result = '';
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+    let result = ''
     for (let i = 0; i < length; i++) {
-        const randomIndex = Math.floor(Math.random() * characters.length);
-        result += characters.charAt(randomIndex);
+        const randomIndex = Math.floor(Math.random() * characters.length)
+        result += characters.charAt(randomIndex)
     }
-    return result;
+    return result
 }
 
 async function getUniqueJoinCode(req, res, connection) {
-    let isUnique = false;
-    let newCode = '';
+    let isUnique = false
+    let newCode = ''
 
     while (!isUnique) {
-        newCode = generateRandomString(6);
+        newCode = generateRandomString(6)
 
         try {
             const [existing] = await connection.promise().query(
                 'SELECT id FROM campaigns WHERE join_code = ?',
                 [newCode]
-            );
+            )
 
             if (existing.length === 0) {
-                isUnique = true;
+                isUnique = true
             }
         }
         catch (err) {
@@ -66,8 +66,8 @@ async function refreshToken(req, res, connection) {
         jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET, async (err, decoded) => {
             if (err) {
                 // Token is dead or tampered with. Clean it up from the DB.
-                await connection.promise().query('DELETE FROM user_sessions WHERE refresh_token = ?', [refreshToken]);
-                return res.status(403).json({ success: false, error: "Expired refresh token." });
+                await connection.promise().query('DELETE FROM user_sessions WHERE refresh_token = ?', [refreshToken])
+                return res.status(403).json({ success: false, error: "Expired refresh token." })
             }
 
             await connection.promise().query('DELETE FROM user_sessions WHERE refresh_token = ?', [refreshToken])
@@ -124,7 +124,7 @@ function authenticateToken(req, res, next) {
     const token = authHeader && authHeader.split(' ')[1]
 
     if (!token) {
-        return res.status(401).json({ success: false, error: "Access denied. No token provided." });
+        return res.status(401).json({ success: false, error: "Access denied. No token provided." })
     }
 
     jwt.verify(token, process.env.JWT_SECRET, (err, decodedPayload) => {

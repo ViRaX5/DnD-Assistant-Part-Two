@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require('mongoose')
 
 const effectSchema = new mongoose.Schema({
     campaignId: { type: Number, required: true },

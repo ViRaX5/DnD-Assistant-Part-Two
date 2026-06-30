@@ -1,7 +1,7 @@
-const mongoose = require('mongoose');
+const mongoose = require('mongoose')
 
 // campaignId -> { dmSocketId, roster: Map<userId, {name, hasRolled, result}> }
-const initiativeSessions = new Map();
+const initiativeSessions = new Map()
 
 async function handleInitiativeStart(io, socket, socketContext, pool) {
     const ctx = socketContext.get(socket.id)

@@ -1,8 +1,8 @@
-const { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
-const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
-const crypto = require('crypto');
-const sharp = require('sharp');
-const helper = require('./helperFunctionsModule');
+const { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3')
+const { getSignedUrl } = require('@aws-sdk/s3-request-presigner')
+const crypto = require('crypto')
+const sharp = require('sharp')
+const helper = require('./helperFunctionsModule')
 
 async function uploadAssets(req, res, connection, client) {
     if (!req.file) {
@@ -10,7 +10,7 @@ async function uploadAssets(req, res, connection, client) {
     }
 
     if (!req.file.mimetype.startsWith('image/') && !req.file.mimetype.startsWith('audio/')) {
-        return res.status(400).json({ success: false, error: "Invalid file type. Please upload an image or audio." });
+        return res.status(400).json({ success: false, error: "Invalid file type. Please upload an image or audio." })
     }
 
     const campaignId = req.body.campaignID
@@ -18,11 +18,11 @@ async function uploadAssets(req, res, connection, client) {
     const assetType = req.body.assetType || 'map'
 
     if (!campaignId || !uploaderId) {
-        return res.status(400).json({ success: false, error: "Missing campaign or user IDs." });
+        return res.status(400).json({ success: false, error: "Missing campaign or user IDs." })
     }
 
     let buffer
-    const finalMimeType = assetType === 'token' ? 'image/png' : req.file.mimetype;
+    const finalMimeType = assetType === 'token' ? 'image/png' : req.file.mimetype
     const imageName = helper.randomImageName()
 
     try {
@@ -44,7 +44,7 @@ async function uploadAssets(req, res, connection, client) {
             }
             else if (assetType === 'map') {
                 buffer = await sharp(req.file.buffer)
-                    .resize({ height: 3000, width: 3000, fit: "inside" }) // might need to chage the values
+                    .resize({ height: 3000, width: 3000, fit: "inside" })
                     .toBuffer()
             }
         }
@@ -103,7 +103,7 @@ async function getAssets(req, res, connection, client) {
             }
             const command = new GetObjectCommand(getObjectParams)
 
-            const temporaryUrl = await getSignedUrl(client, command, { expiresIn: 3600 * 4 }) // 3600 seconds = hour. *4 because I want 4 hours. can be changed later
+            const temporaryUrl = await getSignedUrl(client, command, { expiresIn: 3600 * 4 })
 
             asset.imageUrl = temporaryUrl
 
@@ -166,68 +166,68 @@ async function deleteAssets(req, res, connection, client) {
 }
 
 async function saveMonster(req, res, connection) {
-    const { campaignID, monsterData } = req.body;
+    const { campaignID, monsterData } = req.body
 
     if (!campaignID || !monsterData) {
-        return res.status(400).json({ success: false, error: "Missing campaign ID or monster data." });
+        return res.status(400).json({ success: false, error: "Missing campaign ID or monster data." })
     }
 
     try {
-        const monsterIndex = monsterData.index;
+        const monsterIndex = monsterData.index
 
         const [existing] = await connection.promise().query(`
             SELECT id FROM campaign_monsters 
             WHERE campaign_id = ? 
             AND JSON_UNQUOTE(JSON_EXTRACT(monster_data, '$.index')) = ?`,
             [campaignID, monsterIndex]
-        );
+        )
 
         if (existing.length > 0) {
             return res.json({ 
                 success: true, 
                 message: "Monster is already saved to this campaign.",
                 insertId: existing[0].id
-            });
+            })
         }
 
-        const monsterDataStr = JSON.stringify(monsterData);
+        const monsterDataStr = JSON.stringify(monsterData)
 
         const [dbResult] = await connection.promise().query(`
             INSERT INTO campaign_monsters (campaign_id, monster_data) 
             VALUES (?, ?)`, 
             [campaignID, monsterDataStr]
-        );
+        )
 
         return res.json({ 
             success: true, 
             message: "Monster saved successfully!", 
             insertId: dbResult.insertId 
-        });
+        })
     } catch (err) {
-        console.error("Failed to save monster:", err);
-        return res.status(500).json({ success: false, error: "Database error while saving monster." });
+        console.error("Failed to save monster:", err)
+        return res.status(500).json({ success: false, error: "Database error while saving monster." })
     }
 }
 
 async function getSavedMonsters(req, res, connection) {
-    const campaignId = req.query.campaignID;
+    const campaignId = req.query.campaignID
 
     if (!campaignId) {
-        return res.status(400).json({ success: false, error: "Campaign ID is required." });
+        return res.status(400).json({ success: false, error: "Campaign ID is required." })
     }
 
     try {
         const [monsters] = await connection.promise().query(`
             SELECT * FROM campaign_monsters 
             WHERE campaign_id = ? 
-            ORDER BY id DESC`, // Shows newest additions first
+            ORDER BY id DESC`,
             [campaignId]
-        );
+        )
 
-        return res.json({ success: true, monsters: monsters });
+        return res.json({ success: true, monsters: monsters })
     } catch (err) {
-        console.error("Failed to fetch saved monsters:", err);
-        return res.status(500).json({ success: false, error: "Database error fetching monsters." });
+        console.error("Failed to fetch saved monsters:", err)
+        return res.status(500).json({ success: false, error: "Database error fetching monsters." })
     }
 }
 

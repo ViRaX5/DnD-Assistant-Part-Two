@@ -1,11 +1,11 @@
-const argon2 = require('argon2');
+const argon2 = require('argon2')
 const helper = require('./helperFunctionsModule')
-const jwt = require('jsonwebtoken');
+const jwt = require('jsonwebtoken')
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 function validateSignUp(firstname, lastname, email, password, repeatPassword) {
-    let errors = [];
+    let errors = []
 
     if (!firstname) { errors.push({ field: 'firstname', msg: 'First name is required' }) }
     else if (firstname.length > 40) { errors.push({ field: 'firstname', msg: "First name can't be longer than 40 characters" }) }
@@ -28,13 +28,13 @@ function validateSignUp(firstname, lastname, email, password, repeatPassword) {
 function validateLogin(email, password) {
     let errors = []
 
-    if (!email) errors.push({ field: 'emailLogin', msg: 'Email is required' });
+    if (!email) errors.push({ field: 'emailLogin', msg: 'Email is required' })
     else if (!emailRegex.test(email)) { errors.push({ field: 'emailLogin', msg: 'Please enter a valid email address' }) }
     if (!password) {
-        errors.push({ field: 'passwordLogin', msg: 'Password is required' });
+        errors.push({ field: 'passwordLogin', msg: 'Password is required' })
     }
 
-    return errors;
+    return errors
 }
 
 async function signUp(req, res, connection) {
@@ -71,7 +71,7 @@ async function signUp(req, res, connection) {
     }
 
     try {
-        const hashedPassord = await argon2.hash(password);
+        const hashedPassord = await argon2.hash(password)
 
         await connection.promise().query('INSERT INTO users_info (first_name, last_name, email, hashed_password) values (?,?,?,?)', [firstname, lastname, email, hashedPassord])
 
@@ -89,7 +89,7 @@ async function signUp(req, res, connection) {
         const accessToken = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '15m' })
         const refreshToken = jwt.sign({ userId: user.id }, process.env.REFRESH_TOKEN_SECRET, { expiresIn: '7d' })
 
-        const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days from now in miliseconds
+        const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
         await connection.promise().query(
             'INSERT INTO user_sessions (user_id, refresh_token, expires_at) VALUES (?, ?, ?)',
             [user.id, refreshToken, expiresAt]
@@ -97,9 +97,9 @@ async function signUp(req, res, connection) {
 
         res.cookie('refreshToken', refreshToken, {
             httpOnly: true, // Hides it from hackers' JavaScript
-            secure: process.env.NODE_ENV === 'production', // Requires HTTPS in production
+            secure: process.env.NODE_ENV === 'production',
             sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',
-            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days in milliseconds
+            maxAge: 7 * 24 * 60 * 60 * 1000
         })
 
         return res.json({ success: true, token: accessToken, redirect: './campaignList.html' })

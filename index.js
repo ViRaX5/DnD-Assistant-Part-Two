@@ -1,41 +1,34 @@
-require('dotenv').config();
-const express = require('express');
-const app = express();
-const cors = require('cors');
-const loginSignupModule = require('./Modules/loginModule');
-const campaignListModule = require('./Modules/campaignListModule');
-const playerModule = require('./Modules/playerModule');
-// const argon2 = require('argon2'); probably dont need here
-const mysql = require('mysql2');
-const fs = require('fs');
-const helper = require('./Modules/helperFunctionsModule');
-const mongoose = require('mongoose');
-const uri = `mongodb+srv://amit505r_db_user:${process.env.MONGODB_PASSWORD}@cluster0.6a6vfcx.mongodb.net/?appName=Cluster0`;
-const multer = require('multer');
-const { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
-const crypto = require('crypto');
-const sharp = require('sharp');
-const DMModule = require('./Modules/DMModule');
-const chatModule = require('./Modules/chatModule');
-const effectsModule = require('./Modules/effectsModule');
-const shopModule = require('./Modules/shopModule');
-const mapModule = require('./Modules/mapModule');
-const initiativeModule = require('./Modules/initiativeModule');
-const combatModule = require('./Modules/combatModule');
-const cookieParser = require('cookie-parser');
-const jwt = require('jsonwebtoken');
-// const { MongoClient, ServerApiVersion } = require('mongodb');
-// const uri = `mongodb+srv://amit505r_db_user:${process.env.MONGODB_PASSWORD}@cluster0.6a6vfcx.mongodb.net/?appName=Cluster0`;
+require('dotenv').config()
+const express = require('express')
+const app = express()
+const cors = require('cors')
+const loginSignupModule = require('./Modules/loginModule')
+const campaignListModule = require('./Modules/campaignListModule')
+const playerModule = require('./Modules/playerModule')
+const mysql = require('mysql2')
+const fs = require('fs')
+const helper = require('./Modules/helperFunctionsModule')
+const mongoose = require('mongoose')
+const uri = `mongodb+srv://amit505r_db_user:${process.env.MONGODB_PASSWORD}@cluster0.6a6vfcx.mongodb.net/?appName=Cluster0`
+const multer = require('multer')
+const { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3')
+const crypto = require('crypto')
+const sharp = require('sharp')
+const DMModule = require('./Modules/DMModule')
+const chatModule = require('./Modules/chatModule')
+const effectsModule = require('./Modules/effectsModule')
+const shopModule = require('./Modules/shopModule')
+const mapModule = require('./Modules/mapModule')
+const initiativeModule = require('./Modules/initiativeModule')
+const combatModule = require('./Modules/combatModule')
+const cookieParser = require('cookie-parser')
+const jwt = require('jsonwebtoken')
 
 const port = process.env.PORT || 8080
 
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 app.use(cookieParser())
-
-// database connection
-
-// mySQL
 
 const pool = mysql.createPool({
     host: process.env.DB_HOST,
@@ -60,42 +53,20 @@ pool.getConnection((err, conn) => {
     }
 })
 
-// mongoDB
-
 const clientOptions = { serverApi: { version: '1', strict: true, deprecationErrors: true } }
 async function run() {
     try {
-        // Create a Mongoose client with a MongoClientOptions object to set the Stable API version
-        await mongoose.connect(uri, clientOptions);
+        await mongoose.connect(uri, clientOptions)
         await mongoose.connection.db.admin().command({ ping: 1 })
         console.log("Pinged your deployment. You successfully connected to MongoDB!")
     }
     catch (err) {
-        // Ensures that the client will close when you finish/error
         console.error("MongoDB connection error:", err)
     }
 }
-run().catch(console.dir);
-
-
-// cors
+run().catch(console.dir)
 
 const allowedOrigin = process.env.NODE_ENV === 'production' ? ['https://virax5.github.io'] : ['http://127.0.0.1:5500', 'http://localhost:5500']
-
-// app.use((req, res, next) => {
-//     res.set({
-//         'Access-Control-Allow-Origin': allowedOrigin,
-//         'Access-Control-Allow-Credentials': 'true',
-//         'Access-Control-Allow-Headers': 'Origin, X-Requested-With, Content-Type, Accept, Authorization',
-//         'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
-//         // 'Content-Type': 'application/json'
-//     })
-
-    // if (req.method === 'OPTIONS') {
-    //     return res.sendStatus(200)
-    // }
-   
-// })
 
 app.use(cors({
     origin: allowedOrigin,
@@ -110,16 +81,12 @@ app.use((req, res, next) => {
     next()
 })
 
-// setup multer, s3, crypto
-
 const storage = multer.memoryStorage()
 const upload = multer({ storage: storage })
 
 const client = new S3Client({ region: process.env.BUCKET_REGION })
 
 const randomImageName = (bytes = 32) => crypto.randomBytes(bytes).toString('hex')
-
-// get/post/etc.
 
 app.post('/api/refresh', async (req, res) => {
     helper.refreshToken(req, res, pool)
@@ -187,52 +154,6 @@ app.delete('/api/deleteEntireCampaign', helper.authenticateToken, helper.checkCa
 
 app.post('/api/DM/uploadAsset', helper.authenticateToken, upload.single('media'), async (req, res) => {
     DMModule.uploadAssets(req, res, pool, client)
-
-    // if (!req.file) {
-    //     return res.status(400).json({ success: false, error: "No file uploaded." })
-    // }
-
-    // const campaignId = req.body.campaignID
-    // const uploaderId = req.body.uploaderID
-    // const assetType = req.body.assetType || 'map'
-
-    // if (!campaignId || !uploaderId) {
-    //     return res.status(400).json({ success: false, error: "Missing campaign or user IDs." });
-    // }
-
-    // const buffer = await sharp(req.file.buffer).resize({ height: 3000, width: 3000, fit: "contain" }).toBuffer() //might need to change values
-    // const imageName = randomImageName()
-
-    // const params = {
-    //     Bucket: process.env.BUCKET_NAME,
-    //     Key: imageName,
-    //     Body: buffer,
-    //     ContentType: req.file.mimetype
-    // }
-
-    // try {
-    //     const command = new PutObjectCommand(params)
-    //     await client.send(command)
-
-    //     const [dbResult] = await pool.promise().query(`
-    //         INSERT INTO campaign_assets 
-    //         (campaign_id, uploader_id, s3_key, original_name, asset_type) 
-    //         VALUES (?, ?, ?, ?, ?)`, [campaignId, uploaderId, imageName, req.file.originalname, assetType])
-
-    //     return res.json({
-    //         success: true,
-    //         message: "Asset uploaded and saved to database!",
-    //         assetId: dbResult.insertId,
-    //         imageName: imageName
-    //     })
-    // }
-    // catch (err) {
-    //     console.error("Upload process failed:", err)
-    //     return res.status(500).json({ success: false, error: "An error occurred during the upload process." })
-    // }
-
-
-    // req.file.buffer this is the actual image that we will need to send
 })
 
 app.get("/api/DM/getAsset", helper.authenticateToken, helper.checkCampaignAccess(pool), async (req, res) => {
@@ -252,20 +173,20 @@ app.get('/api/DM/getSavedMonsters', helper.authenticateToken, helper.checkCampai
 })
 
 app.get('/api/DM/getShopInventory', helper.authenticateToken, helper.checkCampaignAccess(pool), (req, res) => {
-    shopModule.getShopInventory(req, res);
+    shopModule.getShopInventory(req, res)
 })
 
 app.post('/api/DM/updateShopInventory', helper.authenticateToken, helper.checkCampaignAccess(pool), (req, res) => {
-    shopModule.updateShopInventory(req, res);
+    shopModule.updateShopInventory(req, res)
 })
 
 app.get('/api/getShopInventory', helper.authenticateToken, helper.checkCampaignAccess(pool), (req, res) => {
-    shopModule.getShopInventory(req, res);
+    shopModule.getShopInventory(req, res)
 })
 
 app.post('/api/player/checkout', helper.authenticateToken, helper.checkCampaignAccess(pool), (req, res) => {
-    playerModule.processCheckout(req, res); 
-});
+    playerModule.processCheckout(req, res) 
+})
 
 app.get('/api/chatHistory', helper.authenticateToken, helper.checkCampaignAccess(pool), (req, res) => {
     chatModule.getChatHistory(req, res)
@@ -296,7 +217,7 @@ const io = require('socket.io')(server, {
         origin: "*",
         methods: ["GET", "POST"]
     }
-});
+})
 
 // socket.id -> { userId, campaignId, isDM }
 const socketContext = new Map()
@@ -453,9 +374,9 @@ io.on('connection', (socket) => {
     })
 
     socket.on('audio:setPlayerVolume', (data) => {
-        const context = socketContext.get(socket.id);
+        const context = socketContext.get(socket.id)
         if (context) {
-            socket.to(`campaign:${context.campaignId}`).emit('audio:syncTargetVolume', data);
+            socket.to(`campaign:${context.campaignId}`).emit('audio:syncTargetVolume', data)
         }
     })
 })
@@ -464,10 +385,8 @@ io.on('connection', (socket) => {
 process.on('SIGINT', async () => {
     console.log("Shutting down server...")
 
-    // Close MySQL
-    pool.end();
+    pool.end()
 
-    // Close MongoDB
     await mongoose.connection.close()
     console.log("Database connections closed cleanly.")
 

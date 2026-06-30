@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require('mongoose')
 
 const characterSchema = new mongoose.Schema({
     userId: { type: Number, required: true },
@@ -39,12 +39,11 @@ const characterSchema = new mongoose.Schema({
     },
     equipment: [String],
 
-    // Split the proficiencies into functional categories
     skills: [{
         id: String, name: String, attribute: String, modifier: Number, proficient: Boolean
     }],
-    languages: [String],   // e.g., ["Elvish", "Dwarvish"]
-    tools: [String],       // e.g., ["Lute", "Thieves' Tools"]
+    languages: [String],
+    tools: [String],
 
     createdAt: { type: Date, default: Date.now }
 })
@@ -148,7 +147,7 @@ async function createNewCampaign(req, res, connection) {
 
         return res.status(500).json({ success: false, error: clientMessage })
     }
-    let campaignID;
+    let campaignID
     try {
         const [result] = await connection.promise().query(
             "SELECT id FROM campaigns WHERE join_code = ?", [joinCode]
@@ -189,37 +188,31 @@ async function joinNewCampaign(req, res, connection) {
         classDisplayName, raceDisplayName, level, xp,
         stats, modifiers, proficiencyBonus, combat, health, savingThrows,
         currency, equipment, skills, languages, tools
-    } = req.body;
+    } = req.body
     const userId = req.user.userId
 
     try {
-        // 1. Verify the Join Code in MySQL and get the Campaign ID
         const [campaignRes] = await connection.promise().query(
             "SELECT id, name FROM campaigns WHERE join_code = ?",
             [campaignCode]
-        );
+        )
 
         if (campaignRes.length === 0) {
-            return res.status(400).json({ success: false, error: "Invalid Campaign Code." });
+            return res.status(400).json({ success: false, error: "Invalid Campaign Code." })
         }
 
-        const campaignId = campaignRes[0].id;
-        const campaignName = campaignRes[0].name;
+        const campaignId = campaignRes[0].id
+        const campaignName = campaignRes[0].name
 
-        // 2. Prevent Duplicate Joins (Check MySQL)
         const [existingPlayer] = await connection.promise().query(
             "SELECT * FROM capmaign_participants WHERE user_id = ? AND campaign_id = ?",
             [userId, campaignId]
-        );
+        )
 
         if (existingPlayer.length > 0) {
-            return res.status(400).json({ success: false, error: "You are already a member of this campaign." });
+            return res.status(400).json({ success: false, error: "You are already a member of this campaign." })
         }
 
-        // 3. Save the complete Character Sheet to MongoDB. The frontend has already
-        // fetched the D&D API's class/race data and computed the derived stats
-        // (modifiers, HP, AC, proficiency bonus, saving throws, structured skills) -
-        // this just persists what it sent.
         const newCharacter = new Character({
             userId: userId,
             campaignId: campaignId,
@@ -241,23 +234,20 @@ async function joinNewCampaign(req, res, connection) {
             skills: skills,
             languages: languages,
             tools: tools
-        });
+        })
 
-        // await newCharacter.save() writes the document to Atlas!
-        await newCharacter.save();
+        await newCharacter.save()
 
-        // 4. Save the Relational Mapping to MySQL
         await connection.promise().query(
             "INSERT INTO capmaign_participants (user_id, campaign_id, users_role, charachers_name) VALUES (?, ?, ?, ?)",
             [userId, campaignId, "player", characterName]
-        );
+        )
 
-        // 5. Success! Send the campaign name and id back so the frontend can update the UI
-        return res.json({ success: true, campaignName: campaignName, campaignId: campaignId });
+        return res.json({ success: true, campaignName: campaignName, campaignId: campaignId })
 
     } catch (err) {
-        console.error("Database error during campaign join: ", err);
-        return res.status(500).json({ success: false, error: "An internal server error occurred." });
+        console.error("Database error during campaign join: ", err)
+        return res.status(500).json({ success: false, error: "An internal server error occurred." })
     }
 }
 
@@ -331,7 +321,7 @@ async function updateSkillProficiency(req, res) {
         skill.proficient = proficient
         skill.modifier = character.modifiers[skill.attribute] + (proficient ? character.proficiencyBonus : 0)
 
-        await character.save();
+        await character.save()
 
         return res.json({ success: true, skill: skill })
     }
@@ -365,7 +355,7 @@ async function updateSavingThrowProficiency(req, res) {
         savingThrow.proficient = proficient
         savingThrow.modifier = character.modifiers[savingThrow.id] + (proficient ? character.proficiencyBonus : 0)
 
-        await character.save();
+        await character.save()
 
         return res.json({ success: true, savingThrow: savingThrow })
     }
@@ -412,15 +402,11 @@ async function leaveSession(req, res, connection) {
 async function setUpNewDM(req, res, connection) {
     const { newDMid, campaignID } = req.query
     const leavingUserID = req.user.userId
-    // const newDMid = req.newDMid
-    // const leavingUserID = req.leavingUserID
-    // const campaignID = req.campaignID
 
     if (req.user.campaignRole !== 'DM') {
         return res.status(403).json({ success: false, error: "Only the current DM can transfer the DM role." })
     }
 
-    // note to self, might want to delete the information of the character in mongo, will have to check
     try {
         await connection.promise().query(
             `UPDATE capmaign_participants 
@@ -446,20 +432,16 @@ async function deleteEntireCampaign(req, res, connection) {
     }
 
     try {
-        // 1. Delete all participants from MySQL (the DM)
         await connection.promise().query(
             "DELETE FROM capmaign_participants WHERE campaign_id = ?",
             [campaignID]
         )
 
-        // 2. Delete the actual Campaign from MySQL
         await connection.promise().query(
             "DELETE FROM campaigns WHERE id = ?",
             [campaignID]
         )
 
-        // 3. Delete any lingering character sheets from MongoDB using the schema!
-        // (Assuming you have access to the 'Character' mongoose model at the top of the file)
         await Character.deleteMany({ campaignId: campaignID })
 
         return res.json({ success: true })
